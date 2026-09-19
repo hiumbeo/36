@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: discord-selfbot-afk
+    runtime: node
+    plan: free
+    region: singapore # Chọn Singapore để độ trễ Ping tới Discord thấp nhất (~15-30ms)
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /ping
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: RENDER_EXTERNAL_URL
+        sync: false # Điền URL của Render sau khi tạo xong, ví dụ https://discord-selfbot-afk.onrender.com

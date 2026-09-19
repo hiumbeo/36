@@ -1,0 +1,6 @@
+{
+  "name": "Discord Selfbot Voice & Status Hub",
+  "description": "Hệ thống quản lý Discord Selfbot tự động giữ kết nối trạng thái (Custom Status, Rich Presence, Streaming) và treo kênh thoại (Voice 24/7 AFK) ổn định.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
