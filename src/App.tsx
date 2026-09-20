@@ -302,6 +302,17 @@ export default function App() {
     await fetchSessions();
   };
 
+  const handleReconnect = async (id: string) => {
+    try {
+      const res = await fetch(`/api/selfbot/accounts/${id}/reconnect`, { method: 'POST' });
+      if (res.ok) {
+        await fetchSessions();
+      }
+    } catch (e) {
+      console.error('Reconnect failed:', e);
+    }
+  };
+
   const handleClearLogs = async () => {
     try {
       await fetch('/api/selfbot/logs/clear', { method: 'POST' });
@@ -523,6 +534,7 @@ export default function App() {
                 account={currentAccount}
                 onUpdatePrefix={handleUpdatePrefix}
                 onUpdateAFK={handleUpdateAFK}
+                onReconnect={() => handleReconnect(currentAccount.id)}
               />
             )}
 
@@ -558,6 +570,7 @@ export default function App() {
                     account={currentAccount}
                     onUpdatePrefix={handleUpdatePrefix}
                     onUpdateAFK={handleUpdateAFK}
+                    onReconnect={() => handleReconnect(currentAccount.id)}
                   />
                 )}
               </div>

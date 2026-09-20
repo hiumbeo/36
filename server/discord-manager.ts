@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { handleExtensiveCommand } from './commands-handler.js';
 import type { 
   AccountSession, 
   DiscordStatus, 
@@ -23,6 +24,8 @@ interface ActiveClient {
   rotationInterval: NodeJS.Timeout | null;
   currentRotationIndex: number;
   intentionalDisconnect: boolean;
+  heartbeatAckReceived: boolean;
+  watchdogInterval: NodeJS.Timeout | null;
 }
 
 export class DiscordManager {
@@ -207,6 +210,8 @@ export class DiscordManager {
         rotationInterval: null,
         currentRotationIndex: 0,
         intentionalDisconnect: false,
+        heartbeatAckReceived: true,
+        watchdogInterval: null,
       };
 
       this.clients.set(demoId, client);
@@ -455,6 +460,8 @@ export class DiscordManager {
         rotationInterval: null,
         currentRotationIndex: 0,
         intentionalDisconnect: false,
+        heartbeatAckReceived: true,
+        watchdogInterval: null,
       };
 
       this.clients.set(id, client);
@@ -564,6 +571,10 @@ export class DiscordManager {
       clearInterval(client.rotationInterval);
       client.rotationInterval = null;
     }
+    if (client.watchdogInterval) {
+      clearInterval(client.watchdogInterval);
+      client.watchdogInterval = null;
+    }
 
     if (client.ws) {
       try {
@@ -581,6 +592,25 @@ export class DiscordManager {
     client.session.ping = 0;
 
     this.addLog('info', `Đã ngắt kết nối Gateway cho tài khoản [${client.session.name}].`, id);
+    return true;
+  }
+
+  /**
+   * Khởi động lại kết nối Gateway ngay lập tức (Chống Zombie / Phục hồi 24/7)
+   */
+  public forceReconnect(id: string): boolean {
+    const client = this.clients.get(id);
+    if (!client) return false;
+    this.addLog('info', `[Làm Mới Gateway] Đang làm mới socket kết nối cho ${client.session.name}...`, id);
+    if (client.ws) {
+      try {
+        client.ws.terminate();
+      } catch (e) {
+        // ignore
+      }
+    } else {
+      this.initGatewayConnection(client);
+    }
     return true;
   }
 
@@ -802,6 +832,16 @@ export class DiscordManager {
     const gatewayUrl = client.resumeGatewayUrl || 'wss://gateway.discord.gg/?v=10&encoding=json';
     const id = client.session.id;
 
+    // Dọn dẹp interval cũ nếu có
+    if (client.heartbeatInterval) {
+      clearInterval(client.heartbeatInterval);
+      client.heartbeatInterval = null;
+    }
+    if (client.watchdogInterval) {
+      clearInterval(client.watchdogInterval);
+      client.watchdogInterval = null;
+    }
+
     this.addLog('ws', `Đang kết nối tới Discord Gateway (${client.session.name})...`, id);
 
     try {
@@ -813,7 +853,37 @@ export class DiscordManager {
         },
       });
 
+      // Bật Watchdog 24/7 kiểm tra liên tục mỗi 15 giây
+      client.watchdogInterval = setInterval(() => {
+        if (!client.ws) return;
+
+        // 1. Gửi ping frame WebSocket tầng transport để giữ mở cổng NAT Cloud/Render
+        if (client.ws.readyState === WebSocket.OPEN) {
+          try {
+            client.ws.ping();
+          } catch {}
+        }
+
+        // 2. Kiểm tra nếu socket bị Zombie (quá 90s không có Heartbeat ACK từ Discord)
+        const now = Date.now();
+        if (
+          client.session.isConnected &&
+          client.session.lastHeartbeatAck &&
+          now - client.session.lastHeartbeatAck > 90000
+        ) {
+          this.addLog(
+            'warn',
+            `[Watchdog 24/7] Quá 90s không nhận được tín hiệu Gateway từ Discord (Zombie Connection). Đang ép tái kết nối để phục hồi bot nhận lệnh...`,
+            id
+          );
+          try {
+            client.ws.terminate();
+          } catch {}
+        }
+      }, 15000);
+
       client.ws.on('open', () => {
+        client.heartbeatAckReceived = true;
         this.addLog('ws', `Đã mở socket Gateway thành công. Đang chờ mã Op 10 HELLO...`, id);
       });
 
@@ -833,13 +903,17 @@ export class DiscordManager {
           clearInterval(client.heartbeatInterval);
           client.heartbeatInterval = null;
         }
+        if (client.watchdogInterval) {
+          clearInterval(client.watchdogInterval);
+          client.watchdogInterval = null;
+        }
 
         client.session.isConnected = false;
         client.session.isVoiceConnected = false;
 
         if (!client.intentionalDisconnect) {
           // Auto-reconnect with exponential backoff
-          const timeout = Math.min(30000, 3000 * Math.pow(1.5, client.reconnectAttempts));
+          const timeout = Math.min(30000, 2500 * Math.pow(1.3, Math.min(client.reconnectAttempts, 8)));
           client.reconnectAttempts++;
           this.addLog('info', `Tự động kết nối lại sau ${(timeout / 1000).toFixed(1)} giây (Lần thử ${client.reconnectAttempts})...`, id);
           setTimeout(() => {
@@ -874,6 +948,8 @@ export class DiscordManager {
       case 10: {
         const heartbeatInterval = d.heartbeat_interval;
         this.addLog('ws', `Nhận Op 10 HELLO. Nhịp tim Heartbeat: ${heartbeatInterval}ms`, id);
+
+        client.heartbeatAckReceived = true;
 
         // Start heartbeat
         if (client.heartbeatInterval) {
@@ -913,6 +989,7 @@ export class DiscordManager {
         const ping = client.lastHeartbeatSent > 0 ? now - client.lastHeartbeatSent : 25;
         client.session.ping = ping;
         client.session.lastHeartbeatAck = now;
+        client.heartbeatAckReceived = true;
         break;
       }
 
@@ -953,11 +1030,32 @@ export class DiscordManager {
 
   private sendHeartbeat(client: ActiveClient) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) return;
+
+    // Kiểm tra nếu nhịp tim trước chưa được Discord phản hồi Op 11 ACK -> Socket bị Zombie
+    if (!client.heartbeatAckReceived) {
+      this.addLog(
+        'warn',
+        `[Chống Treo Bot] Không nhận được Op 11 ACK cho Heartbeat trước đó (Zombie Socket). Đang ngắt kết nối để phục hồi ngay...`,
+        client.session.id
+      );
+      try {
+        client.ws.terminate();
+      } catch (e) {
+        // ignore
+      }
+      return;
+    }
+
+    client.heartbeatAckReceived = false;
     client.lastHeartbeatSent = Date.now();
-    client.ws.send(JSON.stringify({
-      op: 1,
-      d: client.lastSequence,
-    }));
+    try {
+      client.ws.send(JSON.stringify({
+        op: 1,
+        d: client.lastSequence,
+      }));
+    } catch (err: any) {
+      this.addLog('error', `Lỗi khi gửi Heartbeat: ${err.message}`, client.session.id);
+    }
   }
 
   private sendIdentify(client: ActiveClient) {
@@ -1095,6 +1193,24 @@ export class DiscordManager {
     const argsString = args.join(' ').trim();
 
     this.addLog('info', `[Lệnh Prefix] Thực thi lệnh: ${prefix}${command} ${argsString}`, client.session.id);
+
+    try {
+      const handled = await handleExtensiveCommand({
+        client,
+        msg,
+        command,
+        args,
+        argsString,
+        prefix,
+        manager: this,
+        sendOrEdit: (chId, mId, text) => this.sendOrEditMessage(client, chId, mId, text),
+      });
+
+      if (handled) return;
+    } catch (cmdErr: any) {
+      this.addLog('error', `Lỗi khi xử lý lệnh ${prefix}${command}: ${cmdErr.message}`, client.session.id);
+      return;
+    }
 
     switch (command) {
       case 'ping': {
@@ -1340,10 +1456,14 @@ export class DiscordManager {
           body: JSON.stringify({ content }),
         });
         if (editRes.ok) return;
+        if (editRes.status === 429) {
+          const rateData: any = await editRes.json().catch(() => ({}));
+          this.addLog('warn', `[Rate Limit Discord] Vui lòng thử lại sau ${rateData?.retry_after || 1}s`, client.session.id);
+        }
       }
 
       // Fallback: send as new message
-      await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, {
+      const postRes = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, {
         method: 'POST',
         headers: {
           Authorization: client.session.token,
@@ -1352,8 +1472,13 @@ export class DiscordManager {
         },
         body: JSON.stringify({ content }),
       });
-    } catch (err) {
-      console.error('sendOrEditMessage error:', err);
+
+      if (!postRes.ok && postRes.status !== 429) {
+        const errTxt = await postRes.text().catch(() => '');
+        this.addLog('warn', `[Gửi tin nhắn Discord lỗi ${postRes.status}] ${errTxt.substring(0, 100)}`, client.session.id);
+      }
+    } catch (err: any) {
+      this.addLog('error', `Lỗi kết nối khi gửi phản hồi lệnh: ${err.message}`, client.session.id);
     }
   }
 }

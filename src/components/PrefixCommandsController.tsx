@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Terminal, 
   Hash, 
@@ -16,20 +16,30 @@ import {
   Save,
   MessageSquare,
   HelpCircle,
-  Clock
+  Clock,
+  Search,
+  RefreshCw,
+  Gamepad2,
+  Cpu,
+  Type,
+  Smile,
+  Calculator
 } from 'lucide-react';
 import type { AccountSession } from '../types.js';
+import { getCommandsList, SelfbotCommandInfo } from '../data/commandsData.js';
 
 interface Props {
   account: AccountSession;
   onUpdatePrefix: (prefix: string) => Promise<void>;
   onUpdateAFK: (enabled: boolean, message: string) => Promise<void>;
+  onReconnect?: () => Promise<void> | void;
 }
 
 export const PrefixCommandsController: React.FC<Props> = ({
   account,
   onUpdatePrefix,
   onUpdateAFK,
+  onReconnect,
 }) => {
   const [prefixInput, setPrefixInput] = useState(account.prefix || '!');
   const [afkEnabled, setAfkEnabled] = useState(account.afk?.enabled || false);
@@ -39,127 +49,31 @@ export const PrefixCommandsController: React.FC<Props> = ({
   const [prefixSaved, setPrefixSaved] = useState(false);
   const [afkSaved, setAfkSaved] = useState(false);
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectSuccess, setReconnectSuccess] = useState(false);
 
-  // Quick command simulator
-  const [testCmd, setTestCmd] = useState('');
-  const [testResponse, setTestResponse] = useState<string | null>(null);
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'games' | 'system' | 'voice' | 'text' | 'fun' | 'tools'>('all');
 
   const activePrefix = account.prefix || '!';
 
-  const commands = [
-    {
-      name: `${activePrefix}val`,
-      syntax: `${activePrefix}val [chế_độ_chơi]`,
-      desc: 'Chuyển sang trạng thái đang chơi VALORANT (Competitive, Ascendant 3, Score 11-9) và trạng thái DND.',
-      category: 'Trạng thái',
-      example: `${activePrefix}val Competitive`,
-    },
-    {
-      name: `${activePrefix}help`,
-      syntax: `${activePrefix}help`,
-      desc: 'Hiển thị menu hướng dẫn tất cả câu lệnh của Selfbot ngay trong chat Discord.',
-      category: 'Thông tin',
-      example: `${activePrefix}help`,
-    },
-    {
-      name: `${activePrefix}ping`,
-      syntax: `${activePrefix}ping`,
-      desc: 'Kiểm tra độ trễ (latency ms) kết nối tới Gateway Discord & thời gian chạy.',
-      category: 'Hệ thống',
-      example: `${activePrefix}ping`,
-    },
-    {
-      name: `${activePrefix}stream`,
-      syntax: `${activePrefix}stream <tiêu_đề> [twitch_url]`,
-      desc: 'Bật Rich Presence Stream Twitch viền tím 🟣 và nút "Watch Stream" 24/7.',
-      category: 'Trạng thái',
-      example: `${activePrefix}stream Coding Discord Selfbot 24/7`,
-    },
-    {
-      name: `${activePrefix}play`,
-      syntax: `${activePrefix}play <tên_game>`,
-      desc: 'Đổi trạng thái hiển thị sang đang chơi Game (Playing...).',
-      category: 'Trạng thái',
-      example: `${activePrefix}play Minecraft`,
-    },
-    {
-      name: `${activePrefix}listen`,
-      syntax: `${activePrefix}listen <bài_hát>`,
-      desc: 'Đổi trạng thái hiển thị sang đang nghe Spotify (Listening...).',
-      category: 'Trạng thái',
-      example: `${activePrefix}listen Lofi Hip Hop Beats`,
-    },
-    {
-      name: `${activePrefix}watch`,
-      syntax: `${activePrefix}watch <tên_video>`,
-      desc: 'Đổi trạng thái hiển thị sang đang xem video (Watching...).',
-      category: 'Trạng thái',
-      example: `${activePrefix}watch Anime HD 24/7`,
-    },
-    {
-      name: `${activePrefix}status`,
-      syntax: `${activePrefix}status <online|idle|dnd|invisible> [text]`,
-      desc: 'Đổi trạng thái hoạt động tài khoản và dòng trạng thái tuỳ chỉnh.',
-      category: 'Trạng thái',
-      example: `${activePrefix}status dnd Đang bận làm đồ án`,
-    },
-    {
-      name: `${activePrefix}voice`,
-      syntax: `${activePrefix}voice <Guild_ID> <Voice_Channel_ID>`,
-      desc: 'Tự động đưa tài khoản vào phòng thoại (Voice Channel) để treo 24/7.',
-      category: 'Voice AFK',
-      example: `${activePrefix}voice 123456789012345678 987654321098765432`,
-    },
-    {
-      name: `${activePrefix}leave`,
-      syntax: `${activePrefix}leave`,
-      desc: 'Rời khỏi phòng voice hiện tại và ngừng treo thoại.',
-      category: 'Voice AFK',
-      example: `${activePrefix}leave`,
-    },
-    {
-      name: `${activePrefix}mute / ${activePrefix}unmute`,
-      syntax: `${activePrefix}mute hoặc ${activePrefix}unmute`,
-      desc: 'Tắt hoặc bật micro khi đang treo trong phòng voice.',
-      category: 'Voice AFK',
-      example: `${activePrefix}mute`,
-    },
-    {
-      name: `${activePrefix}deaf / ${activePrefix}undeaf`,
-      syntax: `${activePrefix}deaf hoặc ${activePrefix}undeaf`,
-      desc: 'Tắt hoặc bật tai nghe khi đang treo trong phòng voice.',
-      category: 'Voice AFK',
-      example: `${activePrefix}deaf`,
-    },
-    {
-      name: `${activePrefix}afk`,
-      syntax: `${activePrefix}afk <lý_do>`,
-      desc: 'Bật tự động trả lời khi có người khác tag @bạn hoặc nhắn tin trực tiếp (DM).',
-      category: 'Tự động',
-      example: `${activePrefix}afk Đang ngủ, có việc gì nhắn lại sau nhé`,
-    },
-    {
-      name: `${activePrefix}noafk`,
-      syntax: `${activePrefix}noafk`,
-      desc: 'Tắt chế độ tự động phản hồi AFK.',
-      category: 'Tự động',
-      example: `${activePrefix}noafk`,
-    },
-    {
-      name: `${activePrefix}prefix`,
-      syntax: `${activePrefix}prefix <ký_tự_mới>`,
-      desc: 'Đổi tiền tố lệnh trực tiếp trong Discord (Ví dụ: !prefix . hoặc !prefix ?).',
-      category: 'Cài đặt',
-      example: `${activePrefix}prefix .`,
-    },
-    {
-      name: `${activePrefix}info`,
-      syntax: `${activePrefix}info`,
-      desc: 'Hiển thị thông tin phiên bot, ID tài khoản, trạng thái ping & uptime Render.',
-      category: 'Thông tin',
-      example: `${activePrefix}info`,
-    },
-  ];
+  const allCommands = useMemo(() => {
+    return getCommandsList(activePrefix);
+  }, [activePrefix]);
+
+  const filteredCommands = useMemo(() => {
+    return allCommands.filter((cmd) => {
+      const matchCat = selectedCategory === 'all' || cmd.category === selectedCategory;
+      const q = searchQuery.toLowerCase().trim();
+      const matchQuery = !q || 
+        cmd.name.toLowerCase().includes(q) || 
+        cmd.syntax.toLowerCase().includes(q) || 
+        cmd.desc.toLowerCase().includes(q) ||
+        cmd.example.toLowerCase().includes(q);
+      return matchCat && matchQuery;
+    });
+  }, [allCommands, selectedCategory, searchQuery]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -196,6 +110,30 @@ export const PrefixCommandsController: React.FC<Props> = ({
     }
   };
 
+  const handleTriggerReconnect = async () => {
+    if (!onReconnect || isReconnecting) return;
+    setIsReconnecting(true);
+    try {
+      await onReconnect();
+      setReconnectSuccess(true);
+      setTimeout(() => setReconnectSuccess(false), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
+  const categories = [
+    { id: 'all', label: 'Tất cả lệnh', icon: Terminal, count: allCommands.length },
+    { id: 'games', label: 'Gaming & RPC', icon: Gamepad2, count: allCommands.filter(c => c.category === 'games').length },
+    { id: 'system', label: 'Hệ thống & Info', icon: Cpu, count: allCommands.filter(c => c.category === 'system').length },
+    { id: 'voice', label: 'Treo Voice AFK', icon: Mic, count: allCommands.filter(c => c.category === 'voice').length },
+    { id: 'text', label: 'Chữ & Mã hóa', icon: Type, count: allCommands.filter(c => c.category === 'text').length },
+    { id: 'fun', label: 'Minigame', icon: Smile, count: allCommands.filter(c => c.category === 'fun').length },
+    { id: 'tools', label: 'Toán & Tiện ích', icon: Calculator, count: allCommands.filter(c => c.category === 'tools').length },
+  ];
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-6">
       {/* Header */}
@@ -206,23 +144,36 @@ export const PrefixCommandsController: React.FC<Props> = ({
               <Terminal className="w-4 h-4" />
             </div>
             <h3 className="text-base font-semibold text-slate-100">
-              Hệ Thống Lệnh Prefix Discord & AFK Responder
+              Hệ Thống 100+ Lệnh Prefix & AFK Discord 24/7
             </h3>
             <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
               Prefix: {activePrefix}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Gõ lệnh trực tiếp trong Discord từ tài khoản của bạn để điều khiển trạng thái, stream Twitch, voice, ping mà không cần mở website.
+            Gõ lệnh trực tiếp trong Discord từ tài khoản của bạn để điều khiển trạng thái, game Rich Presence, voice 24/7, minigame mà không cần mở web.
           </p>
         </div>
 
-        {/* Status indicator */}
-        <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shrink-0">
-          <span className={`w-2 h-2 rounded-full ${account.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-          <span className="text-slate-300 font-medium">
-            {account.isConnected ? 'Sẵn sàng nhận lệnh trong Discord' : 'Cần kết nối Gateway'}
-          </span>
+        {/* Status indicator & Anti-Zombie Reconnect button */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleTriggerReconnect}
+            disabled={isReconnecting}
+            title="Làm mới socket nếu kết nối bị đơ (Anti-Zombie)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 text-xs font-medium transition cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isReconnecting ? 'animate-spin' : ''}`} />
+            <span>{reconnectSuccess ? 'Đã Tái Lập!' : 'Làm Mới Gateway'}</span>
+          </button>
+
+          <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <span className={`w-2 h-2 rounded-full ${account.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+            <span className="text-slate-300 font-medium">
+              {account.isConnected ? 'Gateway Trực Tuyến' : 'Chưa Kết Nối'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -235,10 +186,10 @@ export const PrefixCommandsController: React.FC<Props> = ({
               <Hash className="w-3.5 h-3.5 text-indigo-400" />
               Tiền Tố Lệnh (Command Prefix)
             </label>
-            <span className="text-[10px] text-slate-400 font-mono">Mặc định: !</span>
+            <span className="text-[10px] text-slate-400 font-mono">Hiện tại: {activePrefix}</span>
           </div>
           <p className="text-[11px] text-slate-400">
-            Ký tự mở đầu khi bạn gõ câu lệnh trong Discord (Ví dụ: <code className="text-indigo-300 font-mono">!help</code>, <code className="text-indigo-300 font-mono">.ping</code>, <code className="text-indigo-300 font-mono">?stream</code>).
+            Ký tự mở đầu khi gõ câu lệnh trong Discord (Ví dụ: <code className="text-indigo-300 font-mono">{activePrefix}help</code>, <code className="text-indigo-300 font-mono">{activePrefix}ping</code>, <code className="text-indigo-300 font-mono">{activePrefix}val</code>).
           </p>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -343,27 +294,85 @@ export const PrefixCommandsController: React.FC<Props> = ({
         </form>
       </div>
 
-      {/* Security Note */}
-      <div className="bg-indigo-950/30 border border-indigo-800/40 rounded-xl p-3.5 flex items-start gap-3 text-xs">
-        <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-        <div className="text-slate-300 space-y-1">
-          <span className="font-semibold text-indigo-300">Bảo mật tuyệt đối: </span>
-          Chỉ có tin nhắn do chính tài khoản của bạn gửi mới kích hoạt được các lệnh điều khiển selfbot (người lạ trên server hoàn toàn không thể ra lệnh cho bot của bạn).
+      {/* Security & Anti-Zombie Guarantee Note */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div className="bg-indigo-950/30 border border-indigo-800/40 rounded-xl p-3.5 flex items-start gap-3">
+          <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div className="text-slate-300 space-y-0.5">
+            <span className="font-semibold text-indigo-300">Bảo mật tự động: </span>
+            Chỉ lệnh do chính tài khoản của bạn gõ mới thực thi. Người khác trên server hoàn toàn không thể điều khiển bot.
+          </div>
+        </div>
+
+        <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-3.5 flex items-start gap-3">
+          <Zap className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="text-slate-300 space-y-0.5">
+            <span className="font-semibold text-emerald-300">Tự Phục Hồi 24/7 (Anti-Zombie): </span>
+            Hệ thống tự gửi WebSocket Ping mỗi 15s và tự khởi động lại socket ngay khi phát hiện Discord không trả lời ACK.
+          </div>
+        </div>
+      </div>
+
+      {/* Search & Category Filter */}
+      <div className="space-y-3 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+              Kho Danh Sách Lệnh ({filteredCommands.length} / {allCommands.length} lệnh)
+            </h4>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm lệnh (vd: val, ping, rps, calc)..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          {categories.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id as any)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium transition cursor-pointer whitespace-nowrap text-xs border ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
+                    : 'bg-slate-950/70 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{cat.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-900 text-slate-400'
+                }`}>
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Command Cheat Sheet Table */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-            Bảng Lệnh Selfbot Discord (Nhấp để sao chép)
-          </h4>
-          <span className="text-[11px] text-slate-500">15 lệnh có sẵn</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {commands.map((cmd) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[500px] overflow-y-auto pr-1">
+        {filteredCommands.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-slate-500 text-xs">
+            Không tìm thấy lệnh nào phù hợp với từ khóa &quot;{searchQuery}&quot;.
+          </div>
+        ) : (
+          filteredCommands.map((cmd) => (
             <div
               key={cmd.name}
               className="bg-slate-950/60 border border-slate-800/80 hover:border-indigo-500/40 rounded-xl p-3 flex flex-col justify-between gap-2 transition group"
@@ -373,7 +382,7 @@ export const PrefixCommandsController: React.FC<Props> = ({
                   <span className="font-mono text-xs font-bold text-indigo-300 group-hover:text-indigo-200">
                     {cmd.syntax}
                   </span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 font-medium">
                     {cmd.category}
                   </span>
                 </div>
@@ -405,8 +414,8 @@ export const PrefixCommandsController: React.FC<Props> = ({
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          ))
+        )}
       </div>
     </div>
   );

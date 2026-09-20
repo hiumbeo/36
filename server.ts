@@ -147,6 +147,13 @@ async function startServer() {
     res.json({ success });
   });
 
+  // Force Reconnect Gateway (Chống Zombie)
+  app.post('/api/selfbot/accounts/:id/reconnect', (req, res) => {
+    const { id } = req.params;
+    const success = discordManager.forceReconnect(id);
+    res.json({ success });
+  });
+
   // Update Presence (Status & Activity)
   app.post('/api/selfbot/accounts/:id/presence', (req, res) => {
     const { id } = req.params;
@@ -262,7 +269,7 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Selfbot Discord Server running on port ${PORT}`);
 
-    // Self-Ping Keep-Alive for Render Free Tier (pings every 10 mins to prevent sleep)
+    // Self-Ping Keep-Alive for Render Free Tier (pings every 5 mins to prevent sleep)
     const externalUrl = process.env.RENDER_EXTERNAL_URL || process.env.KEEP_ALIVE_URL;
     if (externalUrl) {
       const pingEndpoint = externalUrl.endsWith('/ping') ? externalUrl : `${externalUrl}/ping`;
@@ -274,8 +281,13 @@ async function startServer() {
         } catch (err: any) {
           discordManager.addLog('warn', `[Keep-Alive] Ping gặp lỗi: ${err.message}`);
         }
-      }, 10 * 60 * 1000);
+      }, 5 * 60 * 1000);
     }
+
+    // Local process keep-alive to ensure event loop remains active
+    setInterval(() => {
+      // noop to keep timer ref active
+    }, 60000);
   });
 }
 

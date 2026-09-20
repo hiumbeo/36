@@ -32,7 +32,7 @@ export const RenderGuideModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const buildCmd = 'npm install && npm run build';
+  const buildCmd = 'npm install --legacy-peer-deps && npm run build';
   const startCmd = 'npm run start';
   const gitCommands = `# 1. Khởi tạo Git & thêm tất cả file
 git init
