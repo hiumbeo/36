@@ -155,7 +155,7 @@ export const StatusController: React.FC<Props> = ({
   };
 
   // Quick Preset Handlers
-  const applyPreset = (preset: 'vscode' | 'streaming' | 'spotify' | 'gaming') => {
+  const applyPreset = (preset: 'vscode' | 'streaming' | 'spotify' | 'soundcloud' | 'gaming') => {
     if (preset === 'vscode') {
       setStatus('online');
       setCustomText('Coding mode on 💻');
@@ -181,6 +181,14 @@ export const StatusController: React.FC<Props> = ({
       setActivityType(2);
       setActivityDetails('Lofi Beats - Sleep / Chill');
       setActivityState('Various Artists');
+    } else if (preset === 'soundcloud') {
+      setStatus('idle');
+      setCustomText('Nghe nhạc SoundCloud 🎧');
+      setEmojiName('🟠');
+      setActivityName('SoundCloud');
+      setActivityType(2);
+      setActivityDetails('Top Trending Tracks');
+      setActivityState('SoundCloud 24/7 Music Stream');
     } else if (preset === 'gaming') {
       setStatus('dnd');
       setCustomText('Do Not Disturb - In Match 🔥');
@@ -243,7 +251,7 @@ export const StatusController: React.FC<Props> = ({
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
               Mẫu cấu hình nhanh (1-Click Presets)
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               <button
                 type="button"
                 onClick={() => applyPreset('vscode')}
@@ -267,6 +275,14 @@ export const StatusController: React.FC<Props> = ({
               >
                 <div className="font-semibold text-xs text-emerald-300">🎧 Spotify Chill</div>
                 <div className="text-[10px] text-slate-500 mt-0.5">Nghe nhạc Lofi</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('soundcloud')}
+                className="px-3 py-2 bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition group cursor-pointer"
+              >
+                <div className="font-semibold text-xs text-amber-400">🟠 SoundCloud 24/7</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Phát nhạc trực tuyến</div>
               </button>
               <button
                 type="button"

@@ -154,6 +154,30 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
     example: `${p}listen Lofi Girl`,
   },
   {
+    name: 'sc',
+    syntax: `${p}sc <bài_hát_hoặc_link>`,
+    desc: 'Phát nhạc SoundCloud Rich Presence 24/7 (hỗ trợ cả tên bài hát hoặc link bài).',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}sc https://soundcloud.com/artist/track`,
+  },
+  {
+    name: 'scstop',
+    syntax: `${p}scstop`,
+    desc: 'Dừng nghe nhạc SoundCloud và xóa trạng thái nghe nhạc.',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}scstop`,
+  },
+  {
+    name: 'scinfo',
+    syntax: `${p}scinfo <link_soundcloud>`,
+    desc: 'Tra cứu thông tin chi tiết bài hát, nghệ sĩ, ảnh bìa từ link SoundCloud.',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}scinfo https://soundcloud.com/artist/track`,
+  },
+  {
     name: 'code',
     syntax: `${p}code [dự_án]`,
     desc: 'Giả lập đang lập trình trên Visual Studio Code.',
@@ -295,11 +319,11 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
   // 3. Treo Voice AFK (8 Lệnh)
   {
     name: 'join',
-    syntax: `${p}join <channel_id>`,
-    desc: 'Tự động vào phòng thoại Voice Channel để treo 24/7.',
+    syntax: `${p}join <channel_id> hoặc ${p}join <guild_id> <channel_id>`,
+    desc: 'Tự động vào phòng thoại Voice Channel để treo 24/7 (hỗ trợ cả ID hoặc link discord).',
     category: 'voice',
     categoryLabel: '🔊 Treo Voice AFK 24/7',
-    example: `${p}join 123456789012345678`,
+    example: `${p}join https://discord.com/channels/...`,
   },
   {
     name: 'leave',
@@ -717,8 +741,8 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
   },
   {
     name: 'qr',
-    syntax: `${p}qr <văn_bản_hoặc_link>`,
-    desc: 'Tạo mã QR Code quét nhanh tức thì.',
+    syntax: `${p}qr <link_hoặc_văn_bản>`,
+    desc: 'Tạo mã QR Code chuẩn xác dạng ảnh PNG sắc nét (hỗ trợ quét ngay trên Discord).',
     category: 'tools',
     categoryLabel: '🧮 Toán & Tiện Dụng',
     example: `${p}qr https://render.com`,

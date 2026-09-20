@@ -363,6 +363,141 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       return true;
     }
 
+    case 'sc':
+    case 'soundcloud':
+    case 'scplay': {
+      if (!argsString) {
+        const defaultTrack = 'Chillhop / Lofi Beats SoundCloud';
+        manager.updatePresence(client.session.id, client.session.status, {
+          name: 'SoundCloud',
+          type: 2, // Listening
+          details: defaultTrack,
+          state: 'SoundCloud 24/7 Stream 🎧',
+          url: 'https://soundcloud.com',
+        });
+        await sendOrEdit(msg.channel_id, msg.id, `🎧 Đã bật Rich Presence nghe nhạc **SoundCloud**: **${defaultTrack}**\n• Mẹo: Gõ \`${p}sc <tên bài hát hoặc link>\` để đổi bài!`);
+        return true;
+      }
+
+      let input = argsString.trim();
+      if (input.toLowerCase().startsWith('play ')) {
+        input = input.slice(5).trim();
+      }
+
+      // Kiểm tra nếu người dùng dán đường dẫn SoundCloud
+      const scUrlMatch = input.match(/https?:\/\/(?:www\.)?(?:on\.)?soundcloud\.com\/[^\s>"]+/i);
+
+      if (scUrlMatch) {
+        const scUrl = scUrlMatch[0].replace(/>$/, '');
+        try {
+          const oembedApi = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(scUrl)}`;
+          const oembedRes = await fetch(oembedApi, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            },
+          });
+
+          if (oembedRes.ok) {
+            const data: any = await oembedRes.json();
+            const title = data.title || 'SoundCloud Track';
+            const artist = data.author_name || 'SoundCloud Artist';
+            const thumbnail = data.thumbnail_url || '';
+
+            manager.updatePresence(client.session.id, client.session.status, {
+              name: 'SoundCloud',
+              type: 2, // Listening
+              details: title,
+              state: `Nghệ sĩ: ${artist}`,
+              url: scUrl,
+            });
+
+            const replyLines = [
+              `🟠 **ĐANG PHÁT NHẠC SOUNDCLOUD (Rich Presence 24/7):**`,
+              `• 🎵 **Bài hát:** **${title}**`,
+              `• 👤 **Nghệ sĩ:** ${artist}`,
+              `• 🔗 **Link bài:** <${scUrl}>`,
+              thumbnail ? thumbnail : '',
+            ].filter(Boolean).join('\n');
+
+            await sendOrEdit(msg.channel_id, msg.id, replyLines);
+            return true;
+          }
+        } catch {}
+
+        // Nếu API oembed timeout hoặc link rút gọn, tự bóc tách title từ URL
+        const urlClean = scUrl.replace(/https?:\/\/(?:www\.)?(?:on\.)?soundcloud\.com\//i, '');
+        const parts = urlClean.split('/');
+        const guessedArtist = (parts[0] || 'SoundCloud').replace(/-/g, ' ');
+        const guessedTitle = (parts[1] || 'Music Track').replace(/-/g, ' ');
+
+        manager.updatePresence(client.session.id, client.session.status, {
+          name: 'SoundCloud',
+          type: 2,
+          details: guessedTitle,
+          state: `Nghệ sĩ: ${guessedArtist}`,
+          url: scUrl,
+        });
+
+        await sendOrEdit(msg.channel_id, msg.id, `🟠 **ĐANG PHÁT NHẠC SOUNDCLOUD:**\n• 🎵 **Bài hát:** **${guessedTitle}**\n• 👤 **Nghệ sĩ:** ${guessedArtist}\n• 🔗 **Link:** <${scUrl}>`);
+        return true;
+      }
+
+      // Trường hợp người dùng nhập tên bài hát
+      const songTitle = input;
+      const searchUrl = `https://soundcloud.com/search?q=${encodeURIComponent(songTitle)}`;
+
+      manager.updatePresence(client.session.id, client.session.status, {
+        name: 'SoundCloud',
+        type: 2, // Listening
+        details: songTitle,
+        state: 'SoundCloud Stream 🎧',
+        url: searchUrl,
+      });
+
+      const reply = [
+        `🟠 **ĐANG PHÁT NHẠC SOUNDCLOUD (Rich Presence 24/7):**`,
+        `• 🎵 **Bài hát:** **${songTitle}**`,
+        `• 🌐 **Nền tảng:** SoundCloud Music Stream`,
+        `• 🔗 **Tìm & Nghe:** <${searchUrl}>`,
+      ].join('\n');
+
+      await sendOrEdit(msg.channel_id, msg.id, reply);
+      return true;
+    }
+
+    case 'scstop':
+    case 'scpause': {
+      manager.updatePresence(client.session.id, client.session.status, null);
+      await sendOrEdit(msg.channel_id, msg.id, `⏹️ Đã dừng phát nhạc SoundCloud và xóa trạng thái nghe nhạc.`);
+      return true;
+    }
+
+    case 'scinfo': {
+      if (!argsString) {
+        await sendOrEdit(msg.channel_id, msg.id, `❌ Vui lòng nhập link bài hát SoundCloud! Ví dụ: \`${p}scinfo https://soundcloud.com/...\``);
+        return true;
+      }
+      const targetUrl = argsString.trim().replace(/^<|>$/g, '');
+      try {
+        const oembedApi = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(targetUrl)}`;
+        const res = await fetch(oembedApi);
+        if (res.ok) {
+          const data: any = await res.json();
+          const info = [
+            `🎵 **THÔNG TIN BÀI HÁT SOUNDCLOUD:**`,
+            `• 🏷️ **Tiêu đề:** **${data.title}**`,
+            `• 👤 **Nghệ sĩ:** ${data.author_name} (<${data.author_url}>)`,
+            `• 🔗 **Link bài:** <${targetUrl}>`,
+            data.thumbnail_url ? data.thumbnail_url : '',
+          ].filter(Boolean).join('\n');
+          await sendOrEdit(msg.channel_id, msg.id, info);
+          return true;
+        }
+      } catch {}
+      await sendOrEdit(msg.channel_id, msg.id, `❌ Không thể lấy thông tin bài hát từ link SoundCloud này.`);
+      return true;
+    }
+
     case 'code':
     case 'vscode': {
       const prj = argsString || 'Discord Selfbot Gateway 24/7 (Node.js/TypeScript)';
@@ -594,15 +729,44 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
     // ==========================================
     // 3. TREO VOICE AFK 24/7 (8 Lệnh)
     // ==========================================
-    case 'join': {
-      const channelId = (args[0] || client.session.voice.channelId || '').replace(/[^0-9]/g, '');
+    case 'join':
+    case 'voice': {
+      let guildId = '';
+      let channelId = '';
+
+      // Trường hợp dán link: https://discord.com/channels/GUILD_ID/CHANNEL_ID
+      const linkMatch = argsString.match(/discord\.com\/channels\/([0-9]+)\/([0-9]+)/);
+      if (linkMatch) {
+        guildId = linkMatch[1];
+        channelId = linkMatch[2];
+      } else if (args.length >= 2) {
+        // Nhập cú pháp: !join <guild_id> <channel_id>
+        guildId = args[0].replace(/[^0-9]/g, '');
+        channelId = args[1].replace(/[^0-9]/g, '');
+      } else if (args.length === 1) {
+        // Nhập cú pháp: !join <channel_id>
+        channelId = args[0].replace(/[^0-9]/g, '');
+        guildId = msg.guild_id || client.session.voice.guildId || '';
+      } else {
+        channelId = client.session.voice.channelId || '';
+        guildId = msg.guild_id || client.session.voice.guildId || '';
+      }
+
       if (!channelId) {
-        await sendOrEdit(msg.channel_id, msg.id, `❌ Vui lòng nhập Channel ID phòng Voice hợp lệ! Ví dụ: \`${p}join 123456789012345678\``);
+        await sendOrEdit(
+          msg.channel_id,
+          msg.id,
+          `❌ Vui lòng nhập Channel ID phòng Voice!\n• Gõ trong Server: \`${p}join <channel_id>\`\n• Gõ trong DM: \`${p}join <server_id> <channel_id>\`\n• Hoặc dán link: \`${p}join https://discord.com/channels/.../...\``
+        );
         return true;
       }
-      const targetGuildId = msg.guild_id || client.session.voice.guildId;
-      await manager.updateVoice(client.session.id, { channelId, guildId: targetGuildId });
-      await sendOrEdit(msg.channel_id, msg.id, `🔊 Đang kết nối và duy trì phòng Voice ID: \`${channelId}\` 24/7 an toàn.`);
+
+      const ok = await manager.updateVoice(client.session.id, { channelId, guildId });
+      if (ok) {
+        await sendOrEdit(msg.channel_id, msg.id, `🔊 Đang kết nối vào phòng Voice ID: \`${channelId}\` và giữ kết nối an toàn 24/7.`);
+      } else {
+        await sendOrEdit(msg.channel_id, msg.id, `⚠️ Không thể vào phòng Voice. Nếu bạn đang gõ trong tin nhắn riêng (DM), vui lòng cung cấp cả Server ID:\n\`${p}join <server_id> <channel_id>\``);
+      }
       return true;
     }
 
@@ -993,14 +1157,54 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       return true;
     }
 
-    case 'qr': {
+    case 'qr':
+    case 'qrcode':
+    case 'addqr':
+    case 'taoqr': {
       if (!argsString) {
-        await sendOrEdit(msg.channel_id, msg.id, `❌ Vui lòng nhập nội dung muốn tạo mã QR! Ví dụ: \`${p}qr https://google.com\``);
+        await sendOrEdit(
+          msg.channel_id,
+          msg.id,
+          `❌ Vui lòng nhập link hoặc nội dung muốn tạo mã QR!\n• Ví dụ: \`${p}qr https://facebook.com\`\n• Ví dụ: \`${p}qr add https://youtube.com\``
+        );
         return true;
       }
-      const encoded = encodeURIComponent(argsString);
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encoded}`;
-      await sendOrEdit(msg.channel_id, msg.id, `📱 **Mã QR của bạn:**\n${qrUrl}`);
+
+      // Tự động gỡ bỏ các tiền tố người dùng hay gõ thêm như 'add', 'link', 'tao', 'tạo', 'make', 'url'
+      let cleanTarget = argsString.trim();
+      const prefixWords = ['add', 'link', 'tao', 'tạo', 'make', 'url'];
+      for (const pw of prefixWords) {
+        if (cleanTarget.toLowerCase().startsWith(pw + ' ')) {
+          cleanTarget = cleanTarget.slice(pw.length + 1).trim();
+          break;
+        }
+      }
+
+      // Gỡ bỏ dấu bọc link của Discord <...>, ngoặc kép "...", ngoặc đơn '...'
+      cleanTarget = cleanTarget.replace(/^<|>$/g, '').replace(/^["']|["']$/g, '').trim();
+
+      if (!cleanTarget) {
+        await sendOrEdit(msg.channel_id, msg.id, `❌ Đường dẫn không hợp lệ sau khi lọc! Hãy nhập: \`${p}qr <link>\``);
+        return true;
+      }
+
+      // Nếu người dùng chỉ gõ domain (vd: google.com, youtube.com) thì tự động gắn https://
+      if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(cleanTarget) && !cleanTarget.startsWith('http://') && !cleanTarget.startsWith('https://')) {
+        cleanTarget = 'https://' + cleanTarget;
+      }
+
+      const encoded = encodeURIComponent(cleanTarget);
+      // QuickChart trả về ảnh .png trực tiếp giúp Discord nhúng ngay lập tức không bị lưu cache link cũ
+      const qrImageUrl = `https://quickchart.io/qr.png?text=${encoded}&size=350&margin=1&ecLevel=H`;
+
+      const responseCard = [
+        `📱 **MÃ QR CODE CHÍNH XÁC ĐÃ TẠO:**`,
+        `• 🔗 **Đường dẫn/Nội dung mã hóa:** <${cleanTarget}>`,
+        `• 📸 **Ảnh mã QR trực tiếp (quét ngay):**`,
+        qrImageUrl,
+      ].join('\n');
+
+      await sendOrEdit(msg.channel_id, msg.id, responseCard);
       return true;
     }
 
@@ -1066,6 +1270,9 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
           `• \`${p}yt <tiêu_đề>\`: Stream YouTube Gaming`,
           `• \`${p}watch <tên_phim>\`: Giả lập xem phim Netflix/Anime`,
           `• \`${p}listen <bài_hát>\`: Giả lập nghe nhạc Spotify`,
+          `• \`${p}sc <bài_hát|link>\`: Phát nhạc SoundCloud Rich Presence 24/7 🎧`,
+          `• \`${p}scstop\`: Dừng nghe nhạc SoundCloud`,
+          `• \`${p}scinfo <link>\`: Xem thông tin bài hát SoundCloud`,
           `• \`${p}vscode [dự_án]\`: Giả lập đang code Visual Studio Code`,
           `• \`${p}custom <text>\`: Đổi dòng trạng thái tuỳ chỉnh`,
           `• \`${p}status <online|idle|dnd|invisible>\`: Đổi trạng thái chấm màu`,
@@ -1129,7 +1336,9 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       if (sub === 'voice' || sub === 'thoai') {
         const text = [
           `🔊 **LỆNH TREO VOICE AFK 24/7 (Tiền tố: \`${p}\`)**`,
-          `• \`${p}join [channel_id]\`: Treo vào phòng Voice ID`,
+          `• \`${p}join [channel_id]\`: Vào phòng Voice (trong Server)`,
+          `• \`${p}join <guild_id> <channel_id>\`: Vào phòng Voice từ bất kỳ đâu / DM`,
+          `• \`${p}voice <link_discord>\`: Dán link phòng thoại trực tiếp để vào`,
           `• \`${p}leave\`: Rời khỏi phòng Voice`,
           `• \`${p}mute\` / \`${p}unmute\`: Tắt / Bật micro`,
           `• \`${p}deaf\` / \`${p}undeaf\`: Tắt / Bật tai nghe`,
@@ -1147,7 +1356,7 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
           `• \`${p}calc <phép_tính>\`: Máy tính thông minh an toàn`,
           `• \`${p}random <min> <max>\`: Tạo số ngẫu nhiên`,
           `• \`${p}time\`: Xem ngày giờ Việt Nam & Quốc Tế`,
-          `• \`${p}qr <link>\`: Tạo mã QR quét nhanh`,
+          `• \`${p}qr <link|nội_dung>\`: Tạo mã QR chính xác (ảnh PNG sắc nét, hỗ trợ quét ngay)`,
           `• \`${p}embed <tiêu_đề> | <nội_dung>\`: Gửi tin nhắn khung viền đẹp`,
           `• \`${p}password [độ_dài]\`: Tạo mật khẩu an toàn`,
           `• \`${p}nitro\`: Fake hộp quà Discord Nitro troll`,

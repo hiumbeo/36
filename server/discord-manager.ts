@@ -665,6 +665,20 @@ export class DiscordManager {
     const client = this.clients.get(id);
     if (!client) return false;
 
+    // Xử lý nếu người dùng dán cả link Discord Channel (e.g. https://discord.com/channels/GUILD_ID/CHANNEL_ID)
+    if (voiceConfig.channelId) {
+      const linkMatch = voiceConfig.channelId.match(/discord\.com\/channels\/([0-9]+)\/([0-9]+)/);
+      if (linkMatch) {
+        voiceConfig.guildId = linkMatch[1];
+        voiceConfig.channelId = linkMatch[2];
+      } else {
+        voiceConfig.channelId = voiceConfig.channelId.replace(/[^0-9]/g, '');
+      }
+    }
+    if (voiceConfig.guildId) {
+      voiceConfig.guildId = voiceConfig.guildId.replace(/[^0-9]/g, '');
+    }
+
     client.session.voice = {
       ...client.session.voice,
       ...voiceConfig,
@@ -687,7 +701,7 @@ export class DiscordManager {
     if (client.session.voice.channelId && !client.session.voice.guildId) {
       try {
         const cleanChanId = client.session.voice.channelId.replace(/[^0-9]/g, '');
-        const res = await fetch(`https://discord.com/api/v10/channels/${cleanChanId}`, {
+        const res = await fetch(`https://discord.com/api/v9/channels/${cleanChanId}`, {
           headers: {
             Authorization: client.session.token,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -709,7 +723,7 @@ export class DiscordManager {
     if (client.ws && client.ws.readyState === WebSocket.OPEN) {
       if (client.session.voice.channelId) {
         if (!client.session.voice.guildId) {
-          this.addLog('warn', `Cần có Guild ID để vào phòng Voice. Hãy nhập lệnh trong server hoặc chọn Server trên Web UI.`, id);
+          this.addLog('warn', `Cần có Guild ID (Server ID) để vào phòng Voice. Hãy dùng lệnh: !join <guild_id> <channel_id> hoặc chọn trên Web.`, id);
           return false;
         }
         client.lastVoiceConnectAttempt = Date.now();
@@ -959,25 +973,15 @@ export class DiscordManager {
             }
           } else if (op === 2) {
             // Op 2: READY -> Hoàn tất bắt tay phòng thoại
-            this.addLog('success', `Đã xác thực và giữ phòng thoại 24/7 thành công! (SSRC: ${d.ssrc})`, id);
+            this.addLog('success', `Đã xác thực và giữ phòng thoại 24/7 an toàn! (SSRC: ${d.ssrc || 'OK'})`, id);
             client.session.isVoiceConnected = true;
+            if (!client.session.voiceUptimeStart) {
+              client.session.voiceUptimeStart = Date.now();
+            }
 
-            // Gửi Select Protocol Op 1
+            // Gửi Speaking State Op 5 để xác nhận trạng thái trong phòng
             if (client.voiceWs && client.voiceWs.readyState === WebSocket.OPEN) {
               try {
-                client.voiceWs.send(JSON.stringify({
-                  op: 1,
-                  d: {
-                    protocol: 'udp',
-                    data: {
-                      address: d.ip || '127.0.0.1',
-                      port: d.port || 1234,
-                      mode: 'xsalsa20_poly1305',
-                    },
-                  },
-                }));
-
-                // Gửi Speaking State Op 5
                 client.voiceWs.send(JSON.stringify({
                   op: 5,
                   d: {
@@ -995,10 +999,12 @@ export class DiscordManager {
       });
 
       client.voiceWs.on('error', (err) => {
-        this.addLog('warn', `Voice Gateway Socket: ${err.message}`, id);
+        this.addLog('warn', `Voice Gateway cảnh báo: ${err.message}`, id);
       });
 
       client.voiceWs.on('close', (code, reason) => {
+        const reasonStr = reason ? reason.toString() : '';
+        this.addLog('voice', `Voice Gateway Socket đã đóng (Mã: ${code}${reasonStr ? `, Lý do: ${reasonStr}` : ''})`, id);
         this.cleanupVoiceWs(client);
       });
     } catch (err: any) {
