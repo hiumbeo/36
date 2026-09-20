@@ -3,6 +3,22 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { discordManager } from './server/discord-manager.js';
 
+// Bảo vệ tiến trình 24/7 chống crash host trên Render Cloud
+process.on('uncaughtException', (err) => {
+  console.error('[CHỐNG CRASH HOST] Phát hiện ngoại lệ chưa bắt:', err);
+  try {
+    discordManager.addLog('error', `[Chống Crash Host] Đã ngăn ngừa crash ứng dụng: ${err.message}`);
+  } catch {}
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  console.error('[CHỐNG CRASH HOST] Phát hiện Promise unhandled:', reason);
+  try {
+    const msg = reason?.message || String(reason);
+    discordManager.addLog('warn', `[Chống Crash Host] Đã bắt Promise rejection: ${msg}`);
+  } catch {}
+});
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -163,11 +179,15 @@ async function startServer() {
   });
 
   // Update Voice channel
-  app.post('/api/selfbot/accounts/:id/voice', (req, res) => {
-    const { id } = req.params;
-    const voiceConfig = req.body;
-    const success = discordManager.updateVoice(id, voiceConfig);
-    res.json({ success });
+  app.post('/api/selfbot/accounts/:id/voice', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const voiceConfig = req.body;
+      const success = await discordManager.updateVoice(id, voiceConfig);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   });
 
   // Configure rotating status

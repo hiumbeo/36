@@ -561,7 +561,10 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         await sendOrEdit(msg.channel_id, msg.id, `❌ Lệnh này chỉ dùng được bên trong Server (Guild), không hỗ trợ tin nhắn riêng.`);
         return true;
       }
-      const gCreatedAt = new Date(Number((BigInt(msg.guild_id) >> 22n) + 1420070400000n)).toLocaleString('vi-VN');
+      let gCreatedAt = 'Không xác định';
+      try {
+        gCreatedAt = new Date(Number((BigInt(msg.guild_id) >> 22n) + 1420070400000n)).toLocaleString('vi-VN');
+      } catch {}
       const text = [
         `🏰 **THÔNG TIN MÁY CHỦ (SERVER)**`,
         `• Server ID: \`${msg.guild_id}\``,
@@ -592,18 +595,19 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
     // 3. TREO VOICE AFK 24/7 (8 Lệnh)
     // ==========================================
     case 'join': {
-      const channelId = args[0] || client.session.voice.channelId;
+      const channelId = (args[0] || client.session.voice.channelId || '').replace(/[^0-9]/g, '');
       if (!channelId) {
-        await sendOrEdit(msg.channel_id, msg.id, `❌ Vui lòng nhập Channel ID phòng Voice! Ví dụ: \`${p}join 123456789012345678\``);
+        await sendOrEdit(msg.channel_id, msg.id, `❌ Vui lòng nhập Channel ID phòng Voice hợp lệ! Ví dụ: \`${p}join 123456789012345678\``);
         return true;
       }
-      manager.updateVoice(client.session.id, { channelId, guildId: msg.guild_id || client.session.voice.guildId });
-      await sendOrEdit(msg.channel_id, msg.id, `🔊 Đang tham gia phòng Voice ID: \`${channelId}\` và giữ kết nối 24/7.`);
+      const targetGuildId = msg.guild_id || client.session.voice.guildId;
+      await manager.updateVoice(client.session.id, { channelId, guildId: targetGuildId });
+      await sendOrEdit(msg.channel_id, msg.id, `🔊 Đang kết nối và duy trì phòng Voice ID: \`${channelId}\` 24/7 an toàn.`);
       return true;
     }
 
     case 'leave': {
-      manager.updateVoice(client.session.id, { channelId: '' });
+      await manager.updateVoice(client.session.id, { channelId: '' });
       await sendOrEdit(msg.channel_id, msg.id, `👋 Đã rời khỏi phòng Voice.`);
       return true;
     }
@@ -611,7 +615,7 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
     case 'mute':
     case 'unmute': {
       const isMute = command === 'mute';
-      manager.updateVoice(client.session.id, { selfMute: isMute });
+      await manager.updateVoice(client.session.id, { selfMute: isMute });
       await sendOrEdit(msg.channel_id, msg.id, `🎙️ Micro Voice: **${isMute ? 'ĐÃ TẮT MIC (Muted)' : 'ĐÃ BẬT MIC (Unmuted)'}**`);
       return true;
     }
@@ -619,14 +623,14 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
     case 'deaf':
     case 'undeaf': {
       const isDeaf = command === 'deaf';
-      manager.updateVoice(client.session.id, { selfDeaf: isDeaf });
+      await manager.updateVoice(client.session.id, { selfDeaf: isDeaf });
       await sendOrEdit(msg.channel_id, msg.id, `🎧 Tai nghe Voice: **${isDeaf ? 'ĐÃ TẮT TAI NGHE (Deafened)' : 'ĐÃ BẬT TAI NGHE (Undeafened)'}**`);
       return true;
     }
 
     case 'video': {
       const cur = Boolean(client.session.voice.selfVideo);
-      manager.updateVoice(client.session.id, { selfVideo: !cur });
+      await manager.updateVoice(client.session.id, { selfVideo: !cur });
       await sendOrEdit(msg.channel_id, msg.id, `📹 Camera phòng Voice: **${!cur ? 'ĐÃ BẬT' : 'ĐÃ TẮT'}**`);
       return true;
     }
