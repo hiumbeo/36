@@ -210,6 +210,14 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
     example: `${p}clearact`,
   },
   {
+    name: 'gameimg',
+    syntax: `${p}gameimg <tên_game> <url_ảnh>`,
+    desc: 'Đặt trạng thái chơi game kèm ảnh bìa Rich Presence thật từ bất kỳ liên kết ảnh nào.',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}gameimg Valorant https://images.contentstack.io/...`,
+  },
+  {
     name: 'mobile',
     syntax: `${p}mobile (hoặc ${p}pure)`,
     desc: 'Bật chế độ Treo Điện Thoại Tinh Khiết 24/7: Online liên tục, hiện icon Điện Thoại xanh lá (📱), gỡ bỏ toàn bộ status và game.',
@@ -224,6 +232,30 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
     category: 'games',
     categoryLabel: '🎮 Gaming & Trạng Thái',
     example: `${p}device mobile`,
+  },
+  {
+    name: 'allstatus',
+    syntax: `${p}allstatus (hoặc ${p}statusall)`,
+    desc: '1 PHÁT GET TOÀN BỘ TRẠNG THÁI: Tài khoản, Online, Icon Điện Thoại, Ping, Uptime, Custom Status, Game & Ảnh, Voice AFK, Xoay Status, Auto React.',
+    category: 'system',
+    categoryLabel: '⚙️ Tiện Ích & Hệ Thống',
+    example: `${p}allstatus`,
+  },
+  {
+    name: 'react',
+    syntax: `${p}react <@user|reply> <emoji>`,
+    desc: 'Tự động thả emoji vào tin nhắn của mục tiêu trong Server. Tự nhận diện Server ID, ẩn danh 100% (tự xóa tin nhắn lệnh, im re không nhắn gì ra chat).',
+    category: 'system',
+    categoryLabel: '⚙️ Tiện Ích & Hệ Thống',
+    example: `${p}react @Someone 🔥 (hoặc reply tin nhắn gõ ${p}react 🔥)`,
+  },
+  {
+    name: 'stopreact',
+    syntax: `${p}stopreact [@user]`,
+    desc: 'Dừng tự động thả emoji cho mục tiêu hoặc toàn bộ server. Tự xóa tin nhắn lệnh ẩn danh.',
+    category: 'system',
+    categoryLabel: '⚙️ Tiện Ích & Hệ Thống',
+    example: `${p}stopreact`,
   },
 
   // 2. Tiện Ích & Hệ Thống (20 Lệnh)

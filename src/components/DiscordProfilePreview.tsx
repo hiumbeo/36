@@ -437,16 +437,49 @@ export const DiscordProfilePreview: React.FC<Props> = ({
                 </div>
               )}
 
-              {/* Playing / Game View */}
+              {/* Playing / Game View with Rich Presence Image */}
               {!isStreaming && !isListening && activity?.name && (
                 <div className="p-3.5 rounded-xl bg-[#2b2d31] border border-white/5 space-y-2">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                      <Gamepad2 className="w-5 h-5" />
-                    </div>
+                    {/* Game Asset Large & Small Image */}
+                    {activity.assets?.large_image ? (
+                      <div className="relative shrink-0">
+                        <img 
+                          src={activity.assets.large_image} 
+                          alt={activity.assets.large_text || activity.name}
+                          title={activity.assets.large_text || activity.name}
+                          className="w-14 h-14 rounded-xl object-cover border border-white/10 shadow-md bg-slate-900"
+                          onError={(e) => {
+                            // Fallback if image fails to load
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        {activity.assets.small_image && (
+                          <img
+                            src={activity.assets.small_image}
+                            alt={activity.assets.small_text || 'Badge'}
+                            title={activity.assets.small_text || 'Rank'}
+                            className="w-5 h-5 rounded-full object-cover border-2 border-[#2b2d31] absolute -bottom-1 -right-1 shadow-md bg-black"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-11 h-11 rounded-xl bg-indigo-600/90 text-white flex items-center justify-center shrink-0 shadow-md border border-indigo-400/20">
+                        <Gamepad2 className="w-6 h-6" />
+                      </div>
+                    )}
+
                     <div className="min-w-0 flex-1">
-                      <h5 className="text-xs font-bold text-white truncate">
+                      <h5 className="text-xs font-bold text-white truncate flex items-center gap-1.5">
                         {activity.name}
+                        {activity.assets?.large_image && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            RPC
+                          </span>
+                        )}
                       </h5>
                       {activity.details && (
                         <p className="text-[11px] text-[#b5bac1] truncate">

@@ -53,6 +53,17 @@ export interface RotatingStatusItem {
 
 export type DeviceType = 'mobile' | 'ios' | 'desktop' | 'web';
 
+export interface AutoReactRule {
+  id: string;
+  targetUserId: string;
+  targetUsername?: string;
+  emoji: string;
+  guildId?: string;
+  guildName?: string;
+  channelId?: string;
+  createdAt: number;
+}
+
 export interface AccountSession {
   id: string;
   token: string;
@@ -75,6 +86,7 @@ export interface AccountSession {
     items: RotatingStatusItem[];
   };
   voice: VoiceConfig;
+  autoReactRules?: AutoReactRule[];
   isConnected: boolean;
   isVoiceConnected: boolean;
   uptimeStart: number | null;

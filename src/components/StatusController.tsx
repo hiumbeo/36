@@ -19,7 +19,9 @@ import {
   Globe,
   Apple,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Image as ImageIcon,
+  Layers
 } from 'lucide-react';
 import type { AccountSession, DiscordStatus, ActivityType, RotatingStatusItem, DeviceType } from '../types.js';
 import { getActivityTypeLabel } from '../utils/format.js';
@@ -59,6 +61,11 @@ export const StatusController: React.FC<Props> = ({
   const [activityDetails, setActivityDetails] = useState(account.activity?.details || 'Treo Status & Voice 24/7');
   const [activityState, setActivityState] = useState(account.activity?.state || 'Workspace Active');
   const [streamingUrl, setStreamingUrl] = useState(account.activity?.url || 'https://twitch.tv/discord');
+  const [largeImage, setLargeImage] = useState(account.activity?.assets?.large_image || '');
+  const [largeText, setLargeText] = useState(account.activity?.assets?.large_text || '');
+  const [smallImage, setSmallImage] = useState(account.activity?.assets?.small_image || '');
+  const [smallText, setSmallText] = useState(account.activity?.assets?.small_text || '');
+  const [applicationId, setApplicationId] = useState(account.activity?.application_id || '');
 
   // Rotating Status state
   const [rotationEnabled, setRotationEnabled] = useState(account.rotatingStatus?.enabled || false);
@@ -105,12 +112,17 @@ export const StatusController: React.FC<Props> = ({
     setActivityDetails(account.activity?.details || '');
     setActivityState(account.activity?.state || '');
     setStreamingUrl(account.activity?.url || 'https://twitch.tv/discord');
+    setLargeImage(account.activity?.assets?.large_image || '');
+    setLargeText(account.activity?.assets?.large_text || '');
+    setSmallImage(account.activity?.assets?.small_image || '');
+    setSmallText(account.activity?.assets?.small_text || '');
+    setApplicationId(account.activity?.application_id || '');
     setRotationEnabled(account.rotatingStatus?.enabled || false);
     setRotationInterval(account.rotatingStatus?.intervalSeconds || 15);
     if (account.rotatingStatus?.items && account.rotatingStatus.items.length > 0) {
       setRotationItems(account.rotatingStatus.items);
     }
-  }, [account.id, account.deviceType]);
+  }, [account.id, account.deviceType, account.activity]);
 
   const handleDeviceSelect = async (type: DeviceType) => {
     setDeviceType(type);
@@ -135,6 +147,11 @@ export const StatusController: React.FC<Props> = ({
     setActivityDetails('');
     setActivityState('');
     setStreamingUrl('');
+    setLargeImage('');
+    setLargeText('');
+    setSmallImage('');
+    setSmallText('');
+    setApplicationId('');
     setRotationEnabled(false);
 
     if (onPureMobile) {
@@ -164,6 +181,13 @@ export const StatusController: React.FC<Props> = ({
           details: activityDetails,
           state: activityState,
           url: activityType === 1 ? streamingUrl : undefined,
+          application_id: applicationId.trim() || undefined,
+          assets: (largeImage.trim() || smallImage.trim()) ? {
+            large_image: largeImage.trim() || undefined,
+            large_text: largeText.trim() || undefined,
+            small_image: smallImage.trim() || undefined,
+            small_text: smallText.trim() || undefined,
+          } : undefined,
         },
         {
           text: customText,
@@ -250,10 +274,15 @@ export const StatusController: React.FC<Props> = ({
       setStatus('dnd');
       setCustomText('Do Not Disturb - In Match 🔥');
       setEmojiName('🎮');
-      setActivityName('Valorant');
+      setActivityName('VALORANT');
       setActivityType(0);
       setActivityDetails('Competitive - Ascent');
-      setActivityState('Score 12 - 11');
+      setActivityState('Score 11 - 9 (Ascendant 3)');
+      setApplicationId('700136079562375218');
+      setLargeImage('https://images.contentstack.io/v3/assets/blt3706121367b58f95/blt0ebffbc004c00030/644a86b1f24d1a49ab500e52/VALORANT_Jett_Red.jpg');
+      setLargeText('VALORANT');
+      setSmallImage('https://cdn.discordapp.com/app-assets/700136079562375218/700140810141696071.png');
+      setSmallText('Ascendant 3');
     }
   };
 
@@ -628,6 +657,213 @@ export const StatusController: React.FC<Props> = ({
                 placeholder="Ví dụ: Workspace: Discord Selfbot (Line 42)"
                 className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+            </div>
+
+            {/* HÌNH ẢNH CHƠI GAME & RICH PRESENCE ASSETS */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-indigo-400" />
+                  Hình Ảnh Chơi Game (Game Artwork & Rich Presence Image)
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Hiển thị ảnh bìa game thật + Huy hiệu rank trên Profile
+                </span>
+              </div>
+
+              {/* Quick Game Artwork Presets */}
+              <div>
+                <label className="text-[11px] font-medium text-slate-400 block mb-1.5">
+                  Chọn nhanh ảnh bìa game nổi tiếng:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                  {[
+                    {
+                      name: 'Valorant',
+                      img: 'https://images.contentstack.io/v3/assets/blt3706121367b58f95/blt0ebffbc004c00030/644a86b1f24d1a49ab500e52/VALORANT_Jett_Red.jpg',
+                      small: 'https://cdn.discordapp.com/app-assets/700136079562375218/700140810141696071.png',
+                      appId: '700136079562375218',
+                      details: 'Competitive - Ascent',
+                      state: 'Score 11 - 9 (Ascendant 3)',
+                      emoji: '🎯',
+                      custom: 'Đang leo rank Valorant 🔥',
+                    },
+                    {
+                      name: 'League of Legends',
+                      img: 'https://images.contentstack.io/v3/assets/blt731acb42bb3d1659/blt1259b14b3d1b1f38/5db05fa80cdae30bb7375d34/RiotX_Spellteller_Disclaimer_1920x1080.jpg',
+                      small: 'https://cdn.discordapp.com/app-assets/356869127241072640/731174987624349767.png',
+                      appId: '356869127241072640',
+                      details: 'Ranked Solo/Duo',
+                      state: 'Summoner\'s Rift (24:12)',
+                      emoji: '⚔️',
+                      custom: 'Leo rank Thách Đấu LMHT ⚔️',
+                    },
+                    {
+                      name: 'Counter-Strike 2',
+                      img: 'https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg',
+                      small: 'https://cdn.discordapp.com/app-assets/1016765793448378418/1156994784406208573.png',
+                      appId: '1016765793448378418',
+                      details: 'Premier Match - Mirage',
+                      state: 'Competitive (Score 12 - 8)',
+                      emoji: '💣',
+                      custom: 'CS2 Premier Clutch 🔥',
+                    },
+                    {
+                      name: 'Minecraft',
+                      img: 'https://cdn.cloudflare.steamstatic.com/steam/apps/1672970/header.jpg',
+                      small: '',
+                      appId: '432980957394370572',
+                      details: 'Hardcore Survival World',
+                      state: 'Building Mega Base (Day 342)',
+                      emoji: '⛏️',
+                      custom: 'Minecraft Hardcore ⛏️',
+                    },
+                    {
+                      name: 'Grand Theft Auto V',
+                      img: 'https://cdn.cloudflare.steamstatic.com/steam/apps/271590/header.jpg',
+                      small: '',
+                      appId: '356875221078245376',
+                      details: 'FiveM Vietnam Roleplay',
+                      state: 'Los Santos City (Online)',
+                      emoji: '🚗',
+                      custom: 'GTA V Roleplay 🚗',
+                    },
+                    {
+                      name: 'Genshin Impact',
+                      img: 'https://fastcdn.hoyoverse.com/content-v2/hk4e/122049/236166ec7135e5a2db12be21711fbab7_8368565127021482937.png',
+                      small: '',
+                      appId: '762434991303950386',
+                      details: 'AR 60 - Spiral Abyss',
+                      state: 'Floor 12-3 (Full 36 Stars)',
+                      emoji: '🌠',
+                      custom: 'Genshin Impact 🌠',
+                    },
+                  ].map((game) => (
+                    <button
+                      key={game.name}
+                      type="button"
+                      onClick={() => {
+                        setActivityName(game.name);
+                        setActivityType(0);
+                        setActivityDetails(game.details);
+                        setActivityState(game.state);
+                        setLargeImage(game.img);
+                        setLargeText(game.name);
+                        setSmallImage(game.small);
+                        setSmallText(game.small ? 'Rank Badge' : '');
+                        setApplicationId(game.appId);
+                        setCustomText(game.custom);
+                        setEmojiName(game.emoji);
+                      }}
+                      className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 text-left transition flex items-center gap-2 group cursor-pointer"
+                    >
+                      <img
+                        src={game.img}
+                        alt={game.name}
+                        className="w-7 h-7 rounded-lg object-cover shrink-0"
+                      />
+                      <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white truncate">
+                        {game.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Large Image & Small Image Form */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* Large Image URL & Tooltip */}
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs font-medium text-slate-300 block mb-1 flex items-center justify-between">
+                      <span>URL Ảnh bìa chính (Large Image URL)</span>
+                      {largeImage && (
+                        <span className="text-[10px] text-emerald-400 font-normal">Đã có ảnh bìa</span>
+                      )}
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      {largeImage ? (
+                        <img
+                          src={largeImage}
+                          alt="Large preview"
+                          className="w-9 h-9 rounded-lg object-cover border border-slate-700 shrink-0 bg-slate-900"
+                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 text-slate-600">
+                          <ImageIcon className="w-4 h-4" />
+                        </div>
+                      )}
+                      <input
+                        type="url"
+                        value={largeImage}
+                        onChange={(e) => setLargeImage(e.target.value)}
+                        placeholder="https://... ảnh bìa game (JPG/PNG)"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-400 block mb-1">
+                      Chú thích ảnh chính (Tooltip hover)
+                    </label>
+                    <input
+                      type="text"
+                      value={largeText}
+                      onChange={(e) => setLargeText(e.target.value)}
+                      placeholder="Ví dụ: VALORANT (Episode 8)"
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Small Image & Application ID */}
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs font-medium text-slate-300 block mb-1 flex items-center justify-between">
+                      <span>URL Huy hiệu góc (Small Image / Rank Badge)</span>
+                      {smallImage && (
+                        <span className="text-[10px] text-indigo-400 font-normal">Đã có badge</span>
+                      )}
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      {smallImage ? (
+                        <img
+                          src={smallImage}
+                          alt="Small preview"
+                          className="w-9 h-9 rounded-full object-cover border border-slate-700 shrink-0 bg-slate-900"
+                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 text-slate-600">
+                          <Trophy className="w-4 h-4" />
+                        </div>
+                      )}
+                      <input
+                        type="url"
+                        value={smallImage}
+                        onChange={(e) => setSmallImage(e.target.value)}
+                        placeholder="https://... icon rank / badge nhỏ"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-400 block mb-1">
+                      Application ID Discord (Tùy chọn)
+                    </label>
+                    <input
+                      type="text"
+                      value={applicationId}
+                      onChange={(e) => setApplicationId(e.target.value)}
+                      placeholder="Ví dụ: 700136079562375218"
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

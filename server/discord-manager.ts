@@ -10,7 +10,8 @@ import type {
   DiscordGuild,
   DiscordChannel,
   RotatingStatusItem,
-  DeviceType
+  DeviceType,
+  AutoReactRule
 } from '../src/types.js';
 
 interface ActiveClient {
@@ -36,6 +37,7 @@ interface ActiveClient {
   } | null;
   voiceSessionId: string | null;
   lastVoiceConnectAttempt: number;
+  autoReactRules: Map<string, AutoReactRule>;
 }
 
 export class DiscordManager {
@@ -231,6 +233,7 @@ export class DiscordManager {
         voiceServerData: null,
         voiceSessionId: 'demo-voice-session',
         lastVoiceConnectAttempt: 0,
+        autoReactRules: new Map(),
       };
 
       this.clients.set(demoId, client);
@@ -279,12 +282,18 @@ export class DiscordManager {
   }
 
   public getSessions(): AccountSession[] {
-    return Array.from(this.clients.values()).map(c => ({ ...c.session }));
+    return Array.from(this.clients.values()).map(c => ({
+      ...c.session,
+      autoReactRules: Array.from(c.autoReactRules?.values() || []),
+    }));
   }
 
   public getSession(id: string): AccountSession | undefined {
     const client = this.clients.get(id);
-    return client ? { ...client.session } : undefined;
+    return client ? {
+      ...client.session,
+      autoReactRules: Array.from(client.autoReactRules?.values() || []),
+    } : undefined;
   }
 
   /**
@@ -486,6 +495,7 @@ export class DiscordManager {
         voiceServerData: null,
         voiceSessionId: null,
         lastVoiceConnectAttempt: 0,
+        autoReactRules: new Map(),
       };
 
       this.clients.set(id, client);
@@ -880,6 +890,107 @@ export class DiscordManager {
     return true;
   }
 
+  /**
+   * Thêm quy tắc tự động thả emoji (Auto-React) cho một mục tiêu
+   */
+  public addAutoReactRule(id: string, rule: Omit<AutoReactRule, 'id' | 'createdAt'>): AutoReactRule | null {
+    const client = this.clients.get(id);
+    if (!client) return null;
+    if (!client.autoReactRules) client.autoReactRules = new Map();
+
+    const ruleId = Math.random().toString(36).substring(2, 9);
+    const key = `${rule.guildId || 'all'}_${rule.targetUserId}`;
+    const newRule: AutoReactRule = {
+      ...rule,
+      id: ruleId,
+      createdAt: Date.now(),
+    };
+    client.autoReactRules.set(key, newRule);
+    return newRule;
+  }
+
+  /**
+   * Xóa quy tắc thả emoji (Auto-React)
+   */
+  public removeAutoReactRule(id: string, targetUserId?: string, guildId?: string): number {
+    const client = this.clients.get(id);
+    if (!client || !client.autoReactRules) return 0;
+    let count = 0;
+    if (!targetUserId && !guildId) {
+      count = client.autoReactRules.size;
+      client.autoReactRules.clear();
+      return count;
+    }
+    for (const [key, rule] of client.autoReactRules.entries()) {
+      const matchTarget = !targetUserId || rule.targetUserId === targetUserId;
+      const matchGuild = !guildId || rule.guildId === guildId || !rule.guildId;
+      if (matchTarget && matchGuild) {
+        client.autoReactRules.delete(key);
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Lấy danh sách quy tắc thả emoji của tài khoản
+   */
+  public getAutoReactRules(id: string): AutoReactRule[] {
+    const client = this.clients.get(id);
+    if (!client || !client.autoReactRules) return [];
+    return Array.from(client.autoReactRules.values());
+  }
+
+  /**
+   * Thả emoji vào tin nhắn qua Discord REST API
+   */
+  public async addReaction(client: ActiveClient, channelId: string, messageId: string, emoji: string): Promise<boolean> {
+    if (client.session.id.startsWith('demo-')) {
+      this.addLog('info', `[DEMO Reaction] Thả emoji ${emoji} vào tin nhắn ${messageId}`, client.session.id);
+      return true;
+    }
+    try {
+      let formattedEmoji = emoji.trim();
+      const customEmojiMatch = formattedEmoji.match(/^<(?:a)?:([a-zA-Z0-9_]+):([0-9]+)>$/);
+      if (customEmojiMatch) {
+        formattedEmoji = `${customEmojiMatch[1]}:${customEmojiMatch[2]}`;
+      }
+      const encoded = encodeURIComponent(formattedEmoji);
+
+      const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages/${messageId}/reactions/${encoded}/@me`, {
+        method: 'PUT',
+        headers: {
+          Authorization: client.session.token,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Content-Length': '0',
+        },
+      });
+      return res.ok || res.status === 204;
+    } catch (err: any) {
+      this.addLog('warn', `Lỗi khi thả emoji: ${err.message}`, client.session.id);
+      return false;
+    }
+  }
+
+  /**
+   * Xóa tin nhắn (stealth/silent execution)
+   */
+  public async deleteMessage(client: ActiveClient, channelId: string, messageId: string): Promise<boolean> {
+    if (client.session.id.startsWith('demo-')) return true;
+    try {
+      const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: client.session.token,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        },
+      });
+      return res.ok || res.status === 204;
+    } catch {
+      return false;
+    }
+  }
+
   private buildActivities(session: AccountSession): any[] {
     const activities: any[] = [];
 
@@ -901,6 +1012,10 @@ export class DiscordManager {
         type: act.type,
       };
 
+      if (act.application_id && act.application_id.trim()) {
+        actObj.application_id = act.application_id.trim();
+      }
+
       if (act.type === 1) {
         // Streaming requires valid twitch or youtube URL for purple badge
         actObj.url = act.url && act.url.trim() ? act.url : 'https://www.twitch.tv/discord';
@@ -919,13 +1034,20 @@ export class DiscordManager {
         };
       }
 
-      if (act.assets?.large_image) {
-        actObj.assets = {
-          large_image: act.assets.large_image,
-          large_text: act.assets.large_text,
-          small_image: act.assets.small_image,
-          small_text: act.assets.small_text,
-        };
+      if (act.assets) {
+        actObj.assets = {};
+        if (act.assets.large_image && act.assets.large_image.trim()) {
+          actObj.assets.large_image = act.assets.large_image.trim();
+        }
+        if (act.assets.large_text && act.assets.large_text.trim()) {
+          actObj.assets.large_text = act.assets.large_text.trim();
+        }
+        if (act.assets.small_image && act.assets.small_image.trim()) {
+          actObj.assets.small_image = act.assets.small_image.trim();
+        }
+        if (act.assets.small_text && act.assets.small_text.trim()) {
+          actObj.assets.small_text = act.assets.small_text.trim();
+        }
       }
 
       activities.push(actObj);
@@ -1527,6 +1649,21 @@ export class DiscordManager {
     const prefix = client.session.prefix || process.env.DISCORD_PREFIX || '!';
     const content = (msg.content || '').trim();
 
+    // 0. Tự Động Thả Emoji (Auto-React) khi mục tiêu gửi tin nhắn trong Server
+    if (!isOwner && client.autoReactRules && client.autoReactRules.size > 0 && authorId) {
+      const guildId = msg.guild_id || undefined;
+      for (const rule of client.autoReactRules.values()) {
+        const matchUser = rule.targetUserId === authorId;
+        const matchGuild = !rule.guildId || rule.guildId === guildId;
+        const matchChannel = !rule.channelId || rule.channelId === msg.channel_id;
+
+        if (matchUser && matchGuild && matchChannel) {
+          this.addReaction(client, msg.channel_id, msg.id, rule.emoji).catch(() => {});
+          this.addLog('info', `[Auto-React] Tự động thả ${rule.emoji} vào tin nhắn của @${msg.author?.username || authorId} tại kênh ${msg.channel_id}`, client.session.id);
+        }
+      }
+    }
+
     // 1. AFK Auto-Responder: when someone mentions the user or DMs the user
     if (!isOwner && client.session.afk?.enabled && !msg.author?.bot) {
       const isMentioned = msg.mentions?.some((m: any) => m.id === client.session.id);
@@ -1562,6 +1699,8 @@ export class DiscordManager {
         prefix,
         manager: this,
         sendOrEdit: (chId, mId, text) => this.sendOrEditMessage(client, chId, mId, text),
+        deleteMessage: (chId, mId) => this.deleteMessage(client, chId, mId),
+        addReaction: (chId, mId, emoji) => this.addReaction(client, chId, mId, emoji),
       });
 
       if (handled) return;

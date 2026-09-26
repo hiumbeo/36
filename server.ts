@@ -234,6 +234,37 @@ async function startServer() {
     res.json({ success });
   });
 
+  // Get Auto-React rules
+  app.get('/api/selfbot/accounts/:id/auto-react', (req, res) => {
+    const { id } = req.params;
+    const rules = discordManager.getAutoReactRules(id);
+    res.json({ rules });
+  });
+
+  // Add Auto-React rule
+  app.post('/api/selfbot/accounts/:id/auto-react', (req, res) => {
+    const { id } = req.params;
+    const { targetUserId, targetUsername, emoji, guildId } = req.body;
+    if (!targetUserId || !emoji) {
+      return res.status(400).json({ error: 'Cần có targetUserId và emoji' });
+    }
+    const rule = discordManager.addAutoReactRule(id, {
+      targetUserId,
+      targetUsername,
+      emoji,
+      guildId,
+    });
+    res.json({ success: Boolean(rule), rule });
+  });
+
+  // Remove Auto-React rules
+  app.delete('/api/selfbot/accounts/:id/auto-react', (req, res) => {
+    const { id } = req.params;
+    const { targetUserId, guildId } = req.query as { targetUserId?: string; guildId?: string };
+    const count = discordManager.removeAutoReactRule(id, targetUserId, guildId);
+    res.json({ success: true, removedCount: count });
+  });
+
   // Fetch Guilds for account
   app.get('/api/selfbot/accounts/:id/guilds', async (req, res) => {
     const { id } = req.params;

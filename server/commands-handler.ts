@@ -18,6 +18,8 @@ export interface CommandContext {
   prefix: string;
   manager: any;
   sendOrEdit: (channelId: string, messageId: string | null, content: string) => Promise<void>;
+  deleteMessage?: (channelId: string, messageId: string) => Promise<boolean>;
+  addReaction?: (channelId: string, messageId: string, emoji: string) => Promise<boolean>;
 }
 
 // Bảng chuyển đổi chữ hoa thường ngẫu nhiên (Mock)
@@ -148,8 +150,15 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: `In Match - ${mode}`,
         state: 'Score: 11 - 9 (Ascent)',
+        application_id: '700136079562375218',
+        assets: {
+          large_image: 'https://images.contentstack.io/v3/assets/blt3706121367b58f95/blt0ebffbc004c00030/644a86b1f24d1a49ab500e52/VALORANT_Jett_Red.jpg',
+          large_text: 'VALORANT (Riot Games)',
+          small_image: 'https://cdn.discordapp.com/app-assets/700136079562375218/700140810141696071.png',
+          small_text: 'Ascendant 3',
+        },
       }, { text: 'Đang leo rank Valorant 🔥', emojiName: '🎯' });
-      await sendOrEdit(msg.channel_id, msg.id, `🎯 Đã đổi sang chơi **VALORANT** 24/7: \`${mode}\` | \`Score 11:9 (DND)\``);
+      await sendOrEdit(msg.channel_id, msg.id, `🎯 Đã đổi sang chơi **VALORANT** 24/7 (Có hình ảnh Rich Presence): \`${mode}\` | \`Ascendant 3 - Score 11:9\``);
       return true;
     }
 
@@ -160,9 +169,16 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         name: 'League of Legends',
         type: 0,
         details: `Ranked Solo (${rank})`,
-        state: 'In Game - Summoner\'s Rift (24:12)',
+        state: 'Summoner\'s Rift (24:12)',
+        application_id: '356869127241072640',
+        assets: {
+          large_image: 'https://images.contentstack.io/v3/assets/blt731acb42bb3d1659/blt1259b14b3d1b1f38/5db05fa80cdae30bb7375d34/RiotX_Spellteller_Disclaimer_1920x1080.jpg',
+          large_text: 'League of Legends',
+          small_image: 'https://cdn.discordapp.com/app-assets/356869127241072640/731174987624349767.png',
+          small_text: 'Thách Đấu (Challenger)',
+        },
       }, { text: 'Đang leo Thách Đấu LMHT ⚔️', emojiName: '⚔️' });
-      await sendOrEdit(msg.channel_id, msg.id, `⚔️ Đã chuyển sang chơi **League of Legends**: \`${rank}\``);
+      await sendOrEdit(msg.channel_id, msg.id, `⚔️ Đã chuyển sang chơi **League of Legends** (Có hình ảnh Rich Presence): \`${rank}\``);
       return true;
     }
 
@@ -174,8 +190,15 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: `Premier Match (${map})`,
         state: 'Competitive (Score 12 - 8)',
+        application_id: '1016765793448378418',
+        assets: {
+          large_image: 'https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg',
+          large_text: 'Counter-Strike 2',
+          small_image: 'https://cdn.discordapp.com/app-assets/1016765793448378418/1156994784406208573.png',
+          small_text: 'Premier 21,500',
+        },
       }, { text: 'CS2 Premier Clutch 🔥', emojiName: '💣' });
-      await sendOrEdit(msg.channel_id, msg.id, `💣 Đã chuyển sang chơi **Counter-Strike 2**: \`${map}\``);
+      await sendOrEdit(msg.channel_id, msg.id, `💣 Đã chuyển sang chơi **Counter-Strike 2** (Có hình ảnh Rich Presence): \`${map}\``);
       return true;
     }
 
@@ -187,8 +210,13 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: `Playing ${world}`,
         state: 'Building Mega Base (Day 342)',
+        application_id: '432980957394370572',
+        assets: {
+          large_image: 'https://cdn.cloudflare.steamstatic.com/steam/apps/1672970/header.jpg',
+          large_text: 'Minecraft Java Edition',
+        },
       }, { text: 'Minecraft Hardcore ⛏️', emojiName: '⛏️' });
-      await sendOrEdit(msg.channel_id, msg.id, `⛏️ Đã chuyển sang chơi **Minecraft**: \`${world}\``);
+      await sendOrEdit(msg.channel_id, msg.id, `⛏️ Đã chuyển sang chơi **Minecraft** (Có hình ảnh Rich Presence): \`${world}\``);
       return true;
     }
 
@@ -200,8 +228,13 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: server,
         state: 'Los Santos City (Online)',
+        application_id: '356875221078245376',
+        assets: {
+          large_image: 'https://cdn.cloudflare.steamstatic.com/steam/apps/271590/header.jpg',
+          large_text: 'Grand Theft Auto V',
+        },
       }, { text: 'GTA V Roleplay 🚗', emojiName: '🚗' });
-      await sendOrEdit(msg.channel_id, msg.id, `🚗 Đã chuyển sang chơi **GTA V**: \`${server}\``);
+      await sendOrEdit(msg.channel_id, msg.id, `🚗 Đã chuyển sang chơi **GTA V** (Có hình ảnh Rich Presence): \`${server}\``);
       return true;
     }
 
@@ -212,8 +245,13 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: `Playing ${game}`,
         state: 'In Server (AFK Farming)',
+        application_id: '440594246830587904',
+        assets: {
+          large_image: 'https://images.rbxcdn.com/f9c8bbd02d334dd163c461159828453d.jpg',
+          large_text: 'Roblox Blox Fruits',
+        },
       }, { text: 'Roblox Grinding 🧱', emojiName: '🧱' });
-      await sendOrEdit(msg.channel_id, msg.id, `🧱 Đã chuyển sang chơi **Roblox**: \`${game}\``);
+      await sendOrEdit(msg.channel_id, msg.id, `🧱 Đã chuyển sang chơi **Roblox** (Có hình ảnh Rich Presence): \`${game}\``);
       return true;
     }
 
@@ -224,8 +262,13 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: ar,
         state: 'Exploring Teyvat',
+        application_id: '762434991303950386',
+        assets: {
+          large_image: 'https://fastcdn.hoyoverse.com/content-v2/hk4e/122049/236166ec7135e5a2db12be21711fbab7_8368565127021482937.png',
+          large_text: 'Genshin Impact (miHoYo)',
+        },
       }, { text: 'Genshin Impact 🌠', emojiName: '🌠' });
-      await sendOrEdit(msg.channel_id, msg.id, `🌠 Đã chuyển sang chơi **Genshin Impact**: \`${ar}\``);
+      await sendOrEdit(msg.channel_id, msg.id, `🌠 Đã chuyển sang chơi **Genshin Impact** (Có hình ảnh Rich Presence): \`${ar}\``);
       return true;
     }
 
@@ -235,8 +278,12 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: 'Ranked Squad - Erangel',
         state: 'Alive: 14/100 | Kills: 6',
+        assets: {
+          large_image: 'https://cdn.cloudflare.steamstatic.com/steam/apps/578080/header.jpg',
+          large_text: 'PUBG: BATTLEGROUNDS',
+        },
       }, { text: 'Winner Winner Chicken Dinner 🍗', emojiName: '🍗' });
-      await sendOrEdit(msg.channel_id, msg.id, `🍗 Đã chuyển sang chơi **PUBG: BATTLEGROUNDS** (DND)`);
+      await sendOrEdit(msg.channel_id, msg.id, `🍗 Đã chuyển sang chơi **PUBG: BATTLEGROUNDS** (Có hình ảnh Rich Presence)`);
       return true;
     }
 
@@ -247,8 +294,12 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: 'Tử Chiến Xếp Hạng (Thách Đấu)',
         state: 'Đang gánh team 4v4',
+        assets: {
+          large_image: 'https://play-lh.googleusercontent.com/I2vFpE45D7c663F1R4Kqf7uS5G6K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z=w512-h250',
+          large_text: 'Garena Free Fire',
+        },
       }, { text: 'Free Fire Leo Rank 🔥', emojiName: '🔥' });
-      await sendOrEdit(msg.channel_id, msg.id, `🔥 Đã chuyển sang chơi **Free Fire**`);
+      await sendOrEdit(msg.channel_id, msg.id, `🔥 Đã chuyển sang chơi **Free Fire** (Có hình ảnh)`);
       return true;
     }
 
@@ -259,8 +310,34 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         type: 0,
         details: 'Battle Royale Trios',
         state: 'Verdansk / Urzikstan',
+        assets: {
+          large_image: 'https://cdn.cloudflare.steamstatic.com/steam/apps/1938090/header.jpg',
+          large_text: 'Call of Duty: Warzone',
+        },
       }, { text: 'Call of Duty Warzone 🪖', emojiName: '🪖' });
-      await sendOrEdit(msg.channel_id, msg.id, `🪖 Đã chuyển sang chơi **Call of Duty: Warzone**`);
+      await sendOrEdit(msg.channel_id, msg.id, `🪖 Đã chuyển sang chơi **Call of Duty: Warzone** (Có hình ảnh)`);
+      return true;
+    }
+
+    case 'gameimg':
+    case 'setgameimg': {
+      if (args.length < 2) {
+        await sendOrEdit(msg.channel_id, msg.id, `❌ Cú pháp: \`${p}gameimg <Tên Game> <URL_Ảnh>\`\nVí dụ: \`${p}gameimg Black Myth Wukong https://cdn.cloudflare.steamstatic.com/steam/apps/2358720/header.jpg\``);
+        return true;
+      }
+      const imageUrl = args[args.length - 1];
+      const gameName = args.slice(0, -1).join(' ').trim();
+      manager.updatePresence(client.session.id, client.session.status, {
+        name: gameName,
+        type: 0,
+        details: 'Đang chơi game 24/7',
+        state: 'Rich Presence Artwork',
+        assets: {
+          large_image: imageUrl,
+          large_text: gameName,
+        },
+      });
+      await sendOrEdit(msg.channel_id, msg.id, `🎮 Đã đặt trạng thái chơi **${gameName}** kèm ảnh bìa Rich Presence: \`${imageUrl}\``);
       return true;
     }
 
@@ -598,6 +675,188 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       await manager.updateDeviceType(client.session.id, targetType);
       const icon = targetType === 'mobile' ? '📱 Điện thoại (Android)' : targetType === 'ios' ? '🍏 iPhone (iOS)' : targetType === 'desktop' ? '💻 Máy tính (PC)' : '🌐 Trình duyệt';
       await sendOrEdit(msg.channel_id, msg.id, `✅ Đã chuyển thiết bị sang **${icon}**. Discord đã được cập nhật biểu tượng!`);
+      return true;
+    }
+
+    // ==========================================
+    // LỆNH 1 PHÁT GET ALL STATUS TRONG ACC LUÔN
+    // ==========================================
+    case 'allstatus':
+    case 'getallstatus':
+    case 'statusall':
+    case 'accstatus':
+    case 'fullstatus':
+    case 'mystatus': {
+      const s = client.session;
+      const uptimeSec = s.uptimeStart ? Math.floor((Date.now() - s.uptimeStart) / 1000) : 0;
+      const uptimeStr = `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m ${uptimeSec % 60}s`;
+
+      const statusEmoji: Record<string, string> = {
+        online: '🟢 Online (Trực tuyến)',
+        idle: '🟡 Idle (Chờ vắng mặt)',
+        dnd: '🔴 DND (Không làm phiền)',
+        invisible: '⚪ Invisible (Ẩn danh)',
+      };
+      const statusText = statusEmoji[s.status as string] || s.status;
+
+      const deviceLabel: Record<string, string> = {
+        mobile: '📱 Điện Thoại (Discord Android)',
+        ios: '🍏 iPhone (Discord iOS)',
+        desktop: '💻 Máy Tính (PC Desktop)',
+        web: '🌐 Trình Duyệt Web',
+      };
+      const deviceText = deviceLabel[s.deviceType as string] || '📱 Điện Thoại (Android)';
+
+      const customStatusStr = s.customStatus?.text
+        ? `${s.customStatus.emojiName ? s.customStatus.emojiName + ' ' : ''}${s.customStatus.text}`
+        : 'Chưa đặt';
+
+      const actTypeLabels: Record<number, string> = {
+        0: 'Đang chơi game',
+        1: 'Đang phát trực tiếp (Stream)',
+        2: 'Đang nghe nhạc (Spotify)',
+        3: 'Đang xem (Watching)',
+        5: 'Đang thi đấu (Competing)',
+      };
+
+      const actStr = s.activity?.name
+        ? `${actTypeLabels[s.activity.type] || 'Hoạt động'}: **${s.activity.name}**${s.activity.details ? ` - *${s.activity.details}*` : ''}${s.activity.state ? ` (${s.activity.state})` : ''}`
+        : 'Không có hoạt động (Chế độ Tinh Khiết)';
+
+      const gameImageStr = s.activity?.assets?.large_image
+        ? `\n• 🖼️ **Ảnh Game / Cover:** \`${s.activity.assets.large_image}\`${s.activity.assets.large_text ? ` (*${s.activity.assets.large_text}*)` : ''}`
+        : '';
+
+      const voiceStr = s.isVoiceConnected && s.voice.channelId
+        ? `🟢 Đang kết nối | Phòng ID: \`${s.voice.channelName || s.voice.channelId}\` | Server: \`${s.voice.guildName || s.voice.guildId}\` | Mic: ${s.voice.selfMute ? 'Tắt 🔇' : 'Bật 🎙️'} | Tai nghe: ${s.voice.selfDeaf ? 'Tắt 🔇' : 'Bật 🎧'}`
+        : '⚪ Không vào phòng voice';
+
+      const rotatingStr = s.rotatingStatus?.enabled
+        ? `BẬT (${s.rotatingStatus.items.length} trạng thái, chu kỳ ${s.rotatingStatus.intervalSeconds}s)`
+        : 'TẮT';
+
+      const afkStr = s.afk?.enabled
+        ? `BẬT (*${s.afk.message}*)`
+        : 'TẮT';
+
+      const autoReactList = manager.getAutoReactRules(s.id);
+      const reactStr = autoReactList.length > 0
+        ? autoReactList.map((r: any, idx: number) => `  ${idx + 1}. ${r.emoji} ➔ User: \`${r.targetUsername ? `@${r.targetUsername}` : r.targetUserId}\`${r.guildId ? ` (Server: \`${r.guildId}\`)` : ' (Tất cả Server)'}`).join('\n')
+        : '  Chưa đặt mục tiêu nào';
+
+      // Check all sessions in manager
+      const allSessions = manager.getSessions();
+      let multiAccStr = '';
+      if (allSessions.length > 1) {
+        multiAccStr = `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👥 **TẤT CẢ TÀI KHOẢN ĐANG TREO (${allSessions.length} ACCOUNTS):**\n` +
+          allSessions.map((acc: any) => `• **${acc.name}**: ${acc.status.toUpperCase()} (${acc.deviceType === 'mobile' || acc.deviceType === 'ios' ? '📱 Mobile' : '💻 PC'}) | Ping: \`${acc.ping || 25}ms\` | Uptime: \`${acc.uptimeStart ? Math.floor((Date.now() - acc.uptimeStart)/60000) + 'm' : '0m'}\``).join('\n');
+      }
+
+      const fullMessage = [
+        `📊 **TOÀN BỘ TRẠNG THÁI TÀI KHOẢN (FULL STATUS GET)**`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `👤 **Tài Khoản:** **${s.name}** (@${s.username}#${s.discriminator}) | ID: \`${s.id}\``,
+        `📶 **Trạng Thái Gateway:** ${statusText}`,
+        `📱 **Biểu Tượng Thiết Bị:** ${deviceText}`,
+        `⏱️ **Uptime Gateway:** \`${uptimeStr}\` | Độ trễ (Ping): \`${s.ping || 25}ms\``,
+        `💬 **Custom Status:** ${customStatusStr}`,
+        `🎮 **Rich Presence:** ${actStr}${gameImageStr}`,
+        `🔊 **Treo Voice 24/7:** ${voiceStr}`,
+        `🔄 **Tự Động Xoay Status:** ${rotatingStr}`,
+        `💤 **Tự Động Trả Lời AFK:** ${afkStr}`,
+        `🎯 **Mục Tiêu Tự Thả Emoji (Auto-React):**\n${reactStr}${multiAccStr}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ].join('\n');
+
+      await sendOrEdit(msg.channel_id, msg.id, fullMessage);
+      return true;
+    }
+
+    // ==========================================
+    // LỆNH AUTO REACT EMOJI (ẨN DANH / IM RE / TỰ NHẬN DIỆN SERVER)
+    // ==========================================
+    case 'autoreact':
+    case 'react':
+    case 'thaemoji': {
+      // 1. IM RE: Luôn xóa tin nhắn lệnh ngay lập tức để ẩn danh hoàn toàn
+      if (ctx.deleteMessage) {
+        ctx.deleteMessage(msg.channel_id, msg.id).catch(() => {});
+      }
+
+      // 2. Tự nhận diện mục tiêu:
+      // A. Nếu người dùng reply tin nhắn: lấy author của tin nhắn được reply
+      // B. Nếu người dùng mention: lấy mention đầu tiên
+      // C. Nếu truyền User ID dạng số: lấy ID đó
+      let targetUserId = '';
+      let targetUsername = '';
+      let emoji = '';
+
+      if (msg.referenced_message?.author) {
+        targetUserId = msg.referenced_message.author.id;
+        targetUsername = msg.referenced_message.author.username;
+        emoji = args[0] || '🔥';
+      } else if (msg.mentions && msg.mentions.length > 0) {
+        targetUserId = msg.mentions[0].id;
+        targetUsername = msg.mentions[0].username;
+        emoji = args.find((a: string) => !a.includes(targetUserId) && !a.startsWith('<@')) || '🔥';
+      } else if (args[0] && /^\d{16,21}$/.test(args[0])) {
+        targetUserId = args[0];
+        emoji = args[1] || '🔥';
+      }
+
+      if (!targetUserId) {
+        manager.addLog('warn', `[Auto-React] Cần tag người dùng (@user), reply tin nhắn của họ hoặc điền User ID. Ví dụ: reply tin nhắn gõ "${prefix}react 🔥" hoặc "${prefix}react @user 🔥"`, client.session.id);
+        return true;
+      }
+
+      emoji = emoji.trim() || '🔥';
+
+      // Tự nhận diện Server ID hiện tại từ tin nhắn Discord (không cần gõ ra)
+      const currentGuildId = msg.guild_id || undefined;
+
+      manager.addAutoReactRule(client.session.id, {
+        targetUserId,
+        targetUsername,
+        emoji,
+        guildId: currentGuildId,
+      });
+
+      // Nếu đang reply một tin nhắn, thả reaction ngay lập tức vào tin nhắn đó
+      if (msg.referenced_message?.id && ctx.addReaction) {
+        ctx.addReaction(msg.channel_id, msg.referenced_message.id, emoji).catch(() => {});
+      }
+
+      // Tuyệt đối không gửi tin nhắn ra kênh ("im re ko nhan gi")
+      manager.addLog('success', `[Auto-React Ẩn Danh] Đã kích hoạt tự động thả emoji "${emoji}" vào tất cả tin nhắn của @${targetUsername || targetUserId} tại server ${currentGuildId ? `(ID: ${currentGuildId})` : 'DM'}. Tin nhắn lệnh đã tự xóa ẩn danh.`, client.session.id);
+      return true;
+    }
+
+    // ==========================================
+    // LỆNH STOP REACT (DỪNG THẢ EMOJI)
+    // ==========================================
+    case 'stopreact':
+    case 'unreact':
+    case 'tatreact':
+    case 'dungreact': {
+      // 1. IM RE: Luôn xóa tin nhắn lệnh ngay lập tức
+      if (ctx.deleteMessage) {
+        ctx.deleteMessage(msg.channel_id, msg.id).catch(() => {});
+      }
+
+      let targetUserId: string | undefined = undefined;
+      if (msg.referenced_message?.author) {
+        targetUserId = msg.referenced_message.author.id;
+      } else if (msg.mentions && msg.mentions.length > 0) {
+        targetUserId = msg.mentions[0].id;
+      } else if (args[0] && /^\d{16,21}$/.test(args[0])) {
+        targetUserId = args[0];
+      }
+
+      const currentGuildId = msg.guild_id || undefined;
+      const count = manager.removeAutoReactRule(client.session.id, targetUserId, currentGuildId);
+
+      // Tuyệt đối không nhắn gì ra chat
+      manager.addLog('info', `[Auto-React] Đã dừng thả emoji (${count} mục tiêu đã gỡ bỏ) tại server ${currentGuildId || 'DM'}. Tin nhắn lệnh đã tự xóa.`, client.session.id);
       return true;
     }
 
