@@ -764,6 +764,7 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
         `🔊 **Treo Voice 24/7:** ${voiceStr}`,
         `🔄 **Tự Động Xoay Status:** ${rotatingStr}`,
         `💤 **Tự Động Trả Lời AFK:** ${afkStr}`,
+        `🐶 **Tool Cày OwO Bot 24/7:** ${s.owoConfig?.enabled ? `🟢 ĐANG CÀY tại <#${s.owoConfig.channelId}> (🏹 ${s.owoStats?.huntsCount || 0} hunt | ⚔️ ${s.owoStats?.battlesCount || 0} battle | 🙏 ${s.owoStats?.praysCount || 0} pray)` : '⚪ ĐANG TẮT'}`,
         `🎯 **Mục Tiêu Tự Thả Emoji (Auto-React):**\n${reactStr}${multiAccStr}`,
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       ].join('\n');
@@ -857,6 +858,248 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
 
       // Tuyệt đối không nhắn gì ra chat
       manager.addLog('info', `[Auto-React] Đã dừng thả emoji (${count} mục tiêu đã gỡ bỏ) tại server ${currentGuildId || 'DM'}. Tin nhắn lệnh đã tự xóa.`, client.session.id);
+      return true;
+    }
+
+    // ==========================================
+    // TOOL CHƠI / CÀY OWO BOT 24/7 (ĐẦY ĐỦ LỆNH & CHỐNG BAN)
+    // ==========================================
+    case 'owo':
+    case 'owofarm':
+    case 'owotool': {
+      const sub = (args[0] || '').toLowerCase();
+      const owoConfig = client.session.owoConfig;
+      const owoStats = client.session.owoStats;
+
+      // 1. Bật cày OwO: !owo on [channel_id]
+      if (sub === 'on' || sub === 'start' || sub === 'bat') {
+        let targetChannel = args[1] || owoConfig?.channelId || msg.channel_id;
+        const linkMatch = targetChannel.match(/channels\/[0-9]+\/([0-9]+)/);
+        if (linkMatch) {
+          targetChannel = linkMatch[1];
+        }
+
+        await manager.updateOwOConfig(client.session.id, {
+          channelId: targetChannel,
+          enabled: true,
+        });
+        const started = manager.startOwOFarm(client.session.id);
+
+        if (started) {
+          const reply = [
+            `🚀 **ĐÃ BẬT TOOL CÀY OWO BOT 24/7 THÀNH CÔNG!**`,
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+            `📍 **Kênh Cày:** <#${targetChannel}> (ID: \`${targetChannel}\`)`,
+            `🏹 **Auto Hunt (owoh):** ${owoConfig?.autoHunt !== false ? 'BẬT ✅' : 'TẮT ❌'}`,
+            `⚔️ **Auto Battle (owob):** ${owoConfig?.autoBattle !== false ? 'BẬT ✅' : 'TẮT ❌'}`,
+            `🙏 **Auto Pray (owo pray):** ${owoConfig?.autoPray !== false ? 'BẬT ✅' : 'TẮT ❌'}`,
+            `🎁 **Auto Daily:** ${owoConfig?.autoDaily !== false ? 'BẬT ✅' : 'TẮT ❌'}`,
+            `⏱️ **Chu Kỳ Delay:** ${owoConfig?.minDelay || 15}s - ${owoConfig?.maxDelay || 19}s (+ Jitter ngẫu nhiên)`,
+            `🛡️ **Chống Ban:** Tự động phát hiện Captcha & Dừng khẩn cấp, Nghỉ giải lao định kỳ`,
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+            `💡 *Gõ \`${p}owo off\` để dừng hoặc \`${p}owo stats\` để xem thống kê cày.*`,
+          ].join('\n');
+          await sendOrEdit(msg.channel_id, msg.id, reply);
+        } else {
+          await sendOrEdit(msg.channel_id, msg.id, `⚠️ Không thể khởi chạy cày OwO. Vui lòng kiểm tra kênh hoặc captcha!`);
+        }
+        return true;
+      }
+
+      // 2. Tắt cày OwO: !owo off
+      if (sub === 'off' || sub === 'stop' || sub === 'tat') {
+        manager.stopOwOFarm(client.session.id);
+        await sendOrEdit(msg.channel_id, msg.id, `⏹️ **ĐÃ DỪNG TOOL CÀY OWO BOT!**\n📊 Thống kê phiên cày: **${owoStats?.huntsCount || 0}** hunts | **${owoStats?.battlesCount || 0}** battles | **${owoStats?.praysCount || 0}** prays.`);
+        return true;
+      }
+
+      // 3. Giải Captcha xong và tiếp tục: !owo resume
+      if (sub === 'resume' || sub === 'tieptuc' || sub === 'giaixong') {
+        const resumed = manager.resumeOwOFarmAfterCaptcha(client.session.id);
+        if (resumed) {
+          await sendOrEdit(msg.channel_id, msg.id, `✅ **ĐÃ MỞ KHÓA VÀ TIẾP TỤC CÀY OWO BOT!**\nTrạng thái Captcha đã được làm mới an toàn.`);
+        } else {
+          await sendOrEdit(msg.channel_id, msg.id, `⚠️ Không thể mở khóa cày OwO. Hãy kiểm tra cấu hình kênh cày!`);
+        }
+        return true;
+      }
+
+      // 4. Chọn kênh cày OwO: !owo channel [channel_id]
+      if (sub === 'channel' || sub === 'kenh') {
+        let chId = args[1] || msg.channel_id;
+        const linkMatch = chId.match(/channels\/[0-9]+\/([0-9]+)/);
+        if (linkMatch) chId = linkMatch[1];
+
+        await manager.updateOwOConfig(client.session.id, { channelId: chId });
+        await sendOrEdit(msg.channel_id, msg.id, `📍 Đã đặt kênh cày OwO thành: <#${chId}> (ID: \`${chId}\`). Gõ \`${p}owo on\` để bắt đầu cày!`);
+        return true;
+      }
+
+      // 5. Thống kê cày OwO: !owo stats
+      if (sub === 'stats' || sub === 'thongke' || sub === 'info') {
+        const uptimeMin = owoStats?.startedAt ? Math.floor((Date.now() - owoStats.startedAt) / 60000) : 0;
+        const statusStr = owoConfig?.captchaDetected
+          ? '🚨 BỊ KHÓA DO GẶP CAPTCHA (Cần giải)'
+          : owoConfig?.enabled
+          ? '🟢 Đang chạy cày tự động'
+          : '⚪ Đang tạm dừng';
+
+        const statsText = [
+          `📊 **BẢNG THỐNG KÊ TOOL CÀY OWO BOT 24/7**`,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          `⚙️ **Trạng Thái:** ${statusStr}`,
+          `📍 **Kênh Đang Cày:** <#${owoConfig?.channelId || msg.channel_id}> (ID: \`${owoConfig?.channelId || 'Chưa đặt'}\`)`,
+          `⏱️ **Thời Gian Chạy:** \`${Math.floor(uptimeMin / 60)}h ${uptimeMin % 60}m\``,
+          `🏹 **Số Lần Hunt (owoh):** **${owoStats?.huntsCount || 0}** lần`,
+          `⚔️ **Số Lần Battle (owob):** **${owoStats?.battlesCount || 0}** lần`,
+          `🙏 **Số Lần Pray (owo pray):** **${owoStats?.praysCount || 0}** lần`,
+          `🎁 **Số Lần Nhận Daily:** **${owoStats?.dailiesCount || 0}** lần`,
+          `🪙 **Số Lần Coinflip / Slots:** **${(owoStats?.coinflipsCount || 0) + (owoStats?.slotsCount || 0)}** lần`,
+          `💰 **Cowoncy Thu Được Gần Nhất:** **${owoStats?.cowoncyEarned ? owoStats.cowoncyEarned.toLocaleString() + ' cowoncy' : 'Đang cập nhật'}**`,
+          `🛡️ **Chống Ban:** ${owoConfig?.autoSleep ? `Nghỉ ${owoConfig.sleepDurationMinutes || 5}p sau mỗi ${owoConfig.sleepAfterMinutes || 35}p` : 'Tắt'} | Delay: \`${owoConfig?.minDelay || 15}s - ${owoConfig?.maxDelay || 19}s\``,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        ].join('\n');
+        await sendOrEdit(msg.channel_id, msg.id, statsText);
+        return true;
+      }
+
+      // 6. Reset thống kê: !owo reset
+      if (sub === 'reset') {
+        manager.resetOwOStats(client.session.id);
+        await sendOrEdit(msg.channel_id, msg.id, `🔄 Đã đặt lại toàn bộ số liệu thống kê cày OwO về 0!`);
+        return true;
+      }
+
+      // 7. Gửi lệnh tay ngay lập tức: hunt / battle / pray / daily
+      if (sub === 'hunt' || sub === 'h') {
+        await manager.sendRawChannelMessage(client, msg.channel_id, 'owoh');
+        if (owoStats) owoStats.huntsCount = (owoStats.huntsCount || 0) + 1;
+        return true;
+      }
+      if (sub === 'battle' || sub === 'b') {
+        await manager.sendRawChannelMessage(client, msg.channel_id, 'owob');
+        if (owoStats) owoStats.battlesCount = (owoStats.battlesCount || 0) + 1;
+        return true;
+      }
+      if (sub === 'pray' || sub === 'p') {
+        const prayTarget = args.slice(1).join(' ').trim();
+        const cmd = prayTarget ? `owo pray ${prayTarget}` : 'owo pray';
+        await manager.sendRawChannelMessage(client, msg.channel_id, cmd);
+        if (owoStats) owoStats.praysCount = (owoStats.praysCount || 0) + 1;
+        return true;
+      }
+      if (sub === 'daily') {
+        await manager.sendRawChannelMessage(client, msg.channel_id, 'owo daily');
+        if (owoStats) owoStats.dailiesCount = (owoStats.dailiesCount || 0) + 1;
+        return true;
+      }
+
+      // 8. Cấu hình Coinflip / Slots: !owo cf <amount>
+      if (sub === 'cf' || sub === 'coinflip') {
+        const amt = parseInt(args[1], 10);
+        if (args[1] === 'off' || args[1] === 'tat') {
+          await manager.updateOwOConfig(client.session.id, { autoCoinflip: false });
+          await sendOrEdit(msg.channel_id, msg.id, `🪙 Đã tắt Auto-Coinflip OwO.`);
+        } else if (!isNaN(amt) && amt > 0) {
+          await manager.updateOwOConfig(client.session.id, { autoCoinflip: true, coinflipAmount: amt });
+          await sendOrEdit(msg.channel_id, msg.id, `🪙 Đã bật Auto-Coinflip OwO với số tiền cược: **${amt}** cowoncy mỗi chu kỳ.`);
+        } else {
+          await sendOrEdit(msg.channel_id, msg.id, `🪙 Cú pháp: \`${p}owo cf <số_tiền>\` hoặc \`${p}owo cf off\``);
+        }
+        return true;
+      }
+
+      // 9. Cấu hình Slots: !owo s <amount>
+      if (sub === 's' || sub === 'slots') {
+        const amt = parseInt(args[1], 10);
+        if (args[1] === 'off' || args[1] === 'tat') {
+          await manager.updateOwOConfig(client.session.id, { autoSlots: false });
+          await sendOrEdit(msg.channel_id, msg.id, `🎰 Đã tắt Auto-Slots OwO.`);
+        } else if (!isNaN(amt) && amt > 0) {
+          await manager.updateOwOConfig(client.session.id, { autoSlots: true, slotsAmount: amt });
+          await sendOrEdit(msg.channel_id, msg.id, `🎰 Đã bật Auto-Slots OwO với số tiền cược: **${amt}** cowoncy mỗi chu kỳ.`);
+        } else {
+          await sendOrEdit(msg.channel_id, msg.id, `🎰 Cú pháp: \`${p}owo s <số_tiền>\` hoặc \`${p}owo s off\``);
+        }
+        return true;
+      }
+
+      // 10. Cấu hình độ trễ Delay: !owo delay <min> <max>
+      if (sub === 'delay') {
+        const min = parseInt(args[1], 10);
+        const max = parseInt(args[2], 10);
+        if (!isNaN(min) && !isNaN(max) && min >= 13 && max >= min) {
+          await manager.updateOwOConfig(client.session.id, { minDelay: min, maxDelay: max });
+          await sendOrEdit(msg.channel_id, msg.id, `⏱️ Đã đặt độ trễ cày OwO: **${min}s - ${max}s** (+ ngẫu nhiên chống ban).`);
+        } else {
+          await sendOrEdit(msg.channel_id, msg.id, `⏱️ Cú pháp: \`${p}owo delay <min_giây> <max_giây>\` (Khuyên dùng: 15 19).`);
+        }
+        return true;
+      }
+
+      // Mặc định hoặc !owo help
+      const guideText = [
+        `🐶 **HƯỚNG DẪN SỬ DỤNG TOOL CHƠI / CÀY OWO BOT 24/7**`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `• \`${p}owo on [channel_id]\` : Bắt đầu cày tự động tại kênh hiện tại hoặc ID`,
+        `• \`${p}owo off\` : Dừng cày OwO ngay lập tức`,
+        `• \`${p}owo resume\` : Mở khóa cày tiếp sau khi đã giải Captcha trên Discord`,
+        `• \`${p}owo channel [id]\` : Đổi kênh cày OwO`,
+        `• \`${p}owo stats\` : Xem chi tiết thống kê Hunts, Battles, Prays, Cowoncy`,
+        `• \`${p}owo reset\` : Đặt lại bộ đếm thống kê về 0`,
+        `• \`${p}owo cf <tiền>\` : Bật cược Coinflip tự động (\`${p}owo cf off\` để tắt)`,
+        `• \`${p}owo s <tiền>\` : Bật cược Slots tự động (\`${p}owo s off\` để tắt)`,
+        `• \`${p}owo delay <min> <max>\` : Chỉnh thời gian giãn cách lệnh (ví dụ: \`${p}owo delay 15 20\`)`,
+        `• \`${p}owoh\` / \`${p}owob\` / \`${p}owopray\` : Gửi lệnh nhanh ngay lập tức`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `🛡️ **Công Nghệ Chống Ban:** Tự động dừng khẩn cấp khi OwO gửi Captcha, nghỉ giải lao định kỳ và delay ngẫu nhiên giả lập người thật!`,
+      ].join('\n');
+      await sendOrEdit(msg.channel_id, msg.id, guideText);
+      return true;
+    }
+
+    // Các alias nhanh cho OwO
+    case 'owoh': {
+      await manager.sendRawChannelMessage(client, msg.channel_id, 'owoh');
+      if (client.session.owoStats) client.session.owoStats.huntsCount = (client.session.owoStats.huntsCount || 0) + 1;
+      return true;
+    }
+    case 'owob': {
+      await manager.sendRawChannelMessage(client, msg.channel_id, 'owob');
+      if (client.session.owoStats) client.session.owoStats.battlesCount = (client.session.owoStats.battlesCount || 0) + 1;
+      return true;
+    }
+    case 'owopray': {
+      const prayTarget = args.join(' ').trim();
+      const cmd = prayTarget ? `owo pray ${prayTarget}` : 'owo pray';
+      await manager.sendRawChannelMessage(client, msg.channel_id, cmd);
+      if (client.session.owoStats) client.session.owoStats.praysCount = (client.session.owoStats.praysCount || 0) + 1;
+      return true;
+    }
+    case 'oworesume': {
+      const resumed = manager.resumeOwOFarmAfterCaptcha(client.session.id);
+      if (resumed) {
+        await sendOrEdit(msg.channel_id, msg.id, `✅ **ĐÃ TIẾP TỤC CÀY OWO BOT!**\nĐã xác nhận giải Captcha xong.`);
+      } else {
+        await sendOrEdit(msg.channel_id, msg.id, `⚠️ Không thể mở khóa cày OwO. Hãy kiểm tra cấu hình kênh cày!`);
+      }
+      return true;
+    }
+    case 'owostats': {
+      const owoConfig = client.session.owoConfig;
+      const owoStats = client.session.owoStats;
+      const uptimeMin = owoStats?.startedAt ? Math.floor((Date.now() - owoStats.startedAt) / 60000) : 0;
+      const statsText = [
+        `📊 **THỐNG KÊ TOOL CÀY OWO BOT 24/7**`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `⚙️ **Trạng Thái:** ${owoConfig?.captchaDetected ? '🚨 DỪNG (GẶP CAPTCHA)' : owoConfig?.enabled ? '🟢 ĐANG CÀY' : '⚪ ĐÃ DỪNG'}`,
+        `📍 **Kênh Cày:** <#${owoConfig?.channelId || msg.channel_id}>`,
+        `🏹 **Hunts (owoh):** **${owoStats?.huntsCount || 0}** | ⚔️ **Battles (owob):** **${owoStats?.battlesCount || 0}**`,
+        `🙏 **Prays:** **${owoStats?.praysCount || 0}** | 🎁 **Daily:** **${owoStats?.dailiesCount || 0}**`,
+        `⏱️ **Thời Gian Chạy:** \`${Math.floor(uptimeMin / 60)}h ${uptimeMin % 60}m\``,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ].join('\n');
+      await sendOrEdit(msg.channel_id, msg.id, statsText);
       return true;
     }
 

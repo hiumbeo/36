@@ -2,7 +2,7 @@ export interface SelfbotCommandInfo {
   name: string;
   syntax: string;
   desc: string;
-  category: 'games' | 'system' | 'voice' | 'text' | 'fun' | 'tools';
+  category: 'games' | 'system' | 'voice' | 'text' | 'fun' | 'tools' | 'owo';
   categoryLabel: string;
   example: string;
 }
@@ -834,5 +834,95 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
     category: 'tools',
     categoryLabel: '🧮 Toán & Tiện Dụng',
     example: `${p}fakegift`,
+  },
+
+  // 7. Tool Chơi & Cày OwO Bot 24/7 (Chống Ban & Captcha)
+  {
+    name: 'owo on',
+    syntax: `${p}owo on [channel_id]`,
+    desc: 'Kích hoạt tool cày OwO tự động tại kênh hiện tại hoặc ID kênh chỉ định.',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo on`,
+  },
+  {
+    name: 'owo off',
+    syntax: `${p}owo off`,
+    desc: 'Dừng cày OwO Bot ngay lập tức và in thống kê số lượt đã cày.',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo off`,
+  },
+  {
+    name: 'owo resume',
+    syntax: `${p}owo resume`,
+    desc: 'Mở khóa và tiếp tục cày sau khi bạn đã giải Captcha thành công trên Discord.',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo resume`,
+  },
+  {
+    name: 'owo stats',
+    syntax: `${p}owo stats`,
+    desc: 'Xem chi tiết bảng thống kê số lượt Hunt, Battle, Pray, Cowoncy, Uptime của tool OwO.',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo stats`,
+  },
+  {
+    name: 'owo channel',
+    syntax: `${p}owo channel [id]`,
+    desc: 'Thay đổi kênh Discord để cày OwO (tự nhận diện link kênh dán vào).',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo channel 112233445566778899`,
+  },
+  {
+    name: 'owo cf',
+    syntax: `${p}owo cf <tiền|off>`,
+    desc: 'Bật tự động cược Coinflip theo số tiền cowoncy mỗi chu kỳ (hoặc cf off để tắt).',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo cf 10`,
+  },
+  {
+    name: 'owo slots',
+    syntax: `${p}owo s <tiền|off>`,
+    desc: 'Bật tự động cược Slots máy quay xèng may mắn (hoặc s off để tắt).',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo s 5`,
+  },
+  {
+    name: 'owo delay',
+    syntax: `${p}owo delay <min> <max>`,
+    desc: 'Cấu hình khoảng thời gian nghỉ giữa các lệnh cày (giây).',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owo delay 15 20`,
+  },
+  {
+    name: 'owoh',
+    syntax: `${p}owoh`,
+    desc: 'Gửi ngay lập tức lệnh "owoh" (Hunt) vào kênh hiện tại.',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owoh`,
+  },
+  {
+    name: 'owob',
+    syntax: `${p}owob`,
+    desc: 'Gửi ngay lập tức lệnh "owob" (Battle) vào kênh hiện tại.',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owob`,
+  },
+  {
+    name: 'owopray',
+    syntax: `${p}owopray [user]`,
+    desc: 'Gửi ngay lệnh "owo pray" cầu nguyện chúc phúc.',
+    category: 'owo',
+    categoryLabel: '🐶 Tool Cày OwO Bot',
+    example: `${p}owopray`,
   },
 ];

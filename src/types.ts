@@ -64,6 +64,44 @@ export interface AutoReactRule {
   createdAt: number;
 }
 
+export interface OwOConfig {
+  enabled: boolean;
+  channelId: string;
+  guildId?: string;
+  channelName?: string;
+  guildName?: string;
+  autoHunt: boolean;
+  autoBattle: boolean;
+  autoPray: boolean;
+  prayUser?: string;
+  autoDaily: boolean;
+  autoCoinflip: boolean;
+  coinflipAmount: number;
+  autoSlots: boolean;
+  slotsAmount: number;
+  minDelay: number; // seconds, default 15
+  maxDelay: number; // seconds, default 19
+  autoSleep: boolean; // periodic pause to avoid bot detection
+  sleepAfterMinutes: number; // e.g. 35 mins
+  sleepDurationMinutes: number; // e.g. 5 mins
+  captchaDetected: boolean;
+  captchaMessage?: string;
+  captchaDetectedAt?: number;
+}
+
+export interface OwOStats {
+  huntsCount: number;
+  battlesCount: number;
+  praysCount: number;
+  dailiesCount: number;
+  coinflipsCount: number;
+  slotsCount: number;
+  lastCommandSent?: string;
+  lastCommandAt?: number;
+  startedAt?: number;
+  cowoncyEarned?: number;
+}
+
 export interface AccountSession {
   id: string;
   token: string;
@@ -87,6 +125,8 @@ export interface AccountSession {
   };
   voice: VoiceConfig;
   autoReactRules?: AutoReactRule[];
+  owoConfig?: OwOConfig;
+  owoStats?: OwOStats;
   isConnected: boolean;
   isVoiceConnected: boolean;
   uptimeStart: number | null;

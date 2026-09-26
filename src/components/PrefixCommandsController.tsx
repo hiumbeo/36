@@ -126,6 +126,7 @@ export const PrefixCommandsController: React.FC<Props> = ({
 
   const categories = [
     { id: 'all', label: 'Tất cả lệnh', icon: Terminal, count: allCommands.length },
+    { id: 'owo', label: 'Tool Cày OwO', icon: Sparkles, count: allCommands.filter(c => c.category === 'owo').length },
     { id: 'games', label: 'Gaming & RPC', icon: Gamepad2, count: allCommands.filter(c => c.category === 'games').length },
     { id: 'system', label: 'Hệ thống & Info', icon: Cpu, count: allCommands.filter(c => c.category === 'system').length },
     { id: 'voice', label: 'Treo Voice AFK', icon: Mic, count: allCommands.filter(c => c.category === 'voice').length },

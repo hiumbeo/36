@@ -276,15 +276,56 @@ async function startServer() {
     res.json({ guilds });
   });
 
-  // Fetch Voice Channels for account & guild
+  // Fetch Channels for account & guild (text, voice, or all)
   app.get('/api/selfbot/accounts/:id/guilds/:guildId/channels', async (req, res) => {
     const { id, guildId } = req.params;
+    const channelType = (req.query.type as 'voice' | 'text' | 'all') || 'voice';
     const session = discordManager.getSession(id);
     if (!session) {
       return res.status(404).json({ error: 'Tài khoản không tồn tại' });
     }
-    const channels = await discordManager.fetchGuildChannels(session.token, guildId);
+    const channels = await discordManager.fetchGuildChannels(session.token, guildId, channelType);
     res.json({ channels });
+  });
+
+  // OwO Auto-Farm: Update configuration
+  app.post('/api/selfbot/accounts/:id/owo/config', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const config = req.body;
+      const success = await discordManager.updateOwOConfig(id, config);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // OwO Auto-Farm: Start
+  app.post('/api/selfbot/accounts/:id/owo/start', (req, res) => {
+    const { id } = req.params;
+    const success = discordManager.startOwOFarm(id);
+    res.json({ success });
+  });
+
+  // OwO Auto-Farm: Stop
+  app.post('/api/selfbot/accounts/:id/owo/stop', (req, res) => {
+    const { id } = req.params;
+    const success = discordManager.stopOwOFarm(id);
+    res.json({ success });
+  });
+
+  // OwO Auto-Farm: Resume after captcha
+  app.post('/api/selfbot/accounts/:id/owo/resume', (req, res) => {
+    const { id } = req.params;
+    const success = discordManager.resumeOwOFarmAfterCaptcha(id);
+    res.json({ success });
+  });
+
+  // OwO Auto-Farm: Reset statistics
+  app.post('/api/selfbot/accounts/:id/owo/reset-stats', (req, res) => {
+    const { id } = req.params;
+    const success = discordManager.resetOwOStats(id);
+    res.json({ success });
   });
 
   // Get logs

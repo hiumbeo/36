@@ -99,6 +99,7 @@ export const GuideModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
             <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
               <li><strong>Treo Voice 24/7:</strong> Duy trì phiên kết nối Gateway op 4 không lo bị Discord ngắt vì AFK.</li>
+              <li><strong>Tool Chơi OwO Bot 24/7:</strong> Tự động Hunt, Battle, Pray, Daily, Coinflip/Slots kèm chống ban tự động dừng khi gặp Captcha.</li>
               <li><strong>Auto-reconnect:</strong> Tự động nhảy lại vào phòng thoại nếu bị kick hoặc server reload.</li>
               <li><strong>Rich Presence & Badge Tím:</strong> Đặt trạng thái Streaming kèm link Twitch để profile nhận viền tím nổi bật.</li>
               <li><strong>Đổi status tự động:</strong> Luân phiên xoay vòng các dòng status quote yêu thích theo chu kỳ.</li>

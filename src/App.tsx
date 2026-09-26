@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Eye,
   Cloud,
-  Zap
+  Zap,
+  Gamepad2
 } from 'lucide-react';
 import type { 
   AccountSession, 
@@ -36,6 +37,7 @@ import { RenderGuideModal } from './components/RenderGuideModal.tsx';
 import { DiscordProfilePreview } from './components/DiscordProfilePreview.tsx';
 import { AutoRunModal } from './components/AutoRunModal.tsx';
 import { PrefixCommandsController } from './components/PrefixCommandsController.tsx';
+import { OwOController } from './components/OwOController.tsx';
 
 export default function App() {
   const [sessions, setSessions] = useState<AccountSession[]>([]);
@@ -49,8 +51,8 @@ export default function App() {
   const [isRenderModalOpen, setIsRenderModalOpen] = useState(false);
   const [isAutoRunModalOpen, setIsAutoRunModalOpen] = useState(false);
 
-  // Active view tab for the selected account: Status vs Voice vs Preview vs Prefix vs All
-  const [activeTab, setActiveTab] = useState<'all' | 'preview' | 'status' | 'voice' | 'prefix'>('all');
+  // Active view tab for the selected account: Status vs Voice vs Preview vs Prefix vs OwO vs All
+  const [activeTab, setActiveTab] = useState<'all' | 'preview' | 'status' | 'voice' | 'prefix' | 'owo'>('all');
 
   // Helper to filter out demo accounts if any real account exists
   const processSessions = (raw: AccountSession[]) => {
@@ -545,6 +547,24 @@ export default function App() {
                     <Terminal className="w-3.5 h-3.5 text-indigo-300" />
                     Lệnh Prefix & AFK
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('owo')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer ${
+                      activeTab === 'owo'
+                        ? 'bg-amber-600 text-white shadow'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+                    Tool Cày OwO
+                    {currentAccount.owoConfig?.enabled && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                    )}
+                    {currentAccount.owoConfig?.captchaDetected && (
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping ml-0.5" />
+                    )}
+                  </button>
                 </div>
 
                 <button
@@ -582,8 +602,16 @@ export default function App() {
               />
             )}
 
+            {/* View Tab: Dedicated OwO Farm Tool */}
+            {activeTab === 'owo' && (
+              <OwOController
+                account={currentAccount}
+                onRefresh={fetchSessions}
+              />
+            )}
+
             {/* View Tab: All or Split Controllers Grid */}
-            {activeTab !== 'preview' && activeTab !== 'prefix' && (
+            {activeTab !== 'preview' && activeTab !== 'prefix' && activeTab !== 'owo' && (
               <div className="space-y-6">
                 {activeTab === 'all' && (
                   <DiscordProfilePreview
@@ -612,6 +640,13 @@ export default function App() {
                     />
                   )}
                 </div>
+
+                {activeTab === 'all' && (
+                  <OwOController
+                    account={currentAccount}
+                    onRefresh={fetchSessions}
+                  />
+                )}
 
                 {activeTab === 'all' && (
                   <PrefixCommandsController

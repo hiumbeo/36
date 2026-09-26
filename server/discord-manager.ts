@@ -11,7 +11,9 @@ import type {
   DiscordChannel,
   RotatingStatusItem,
   DeviceType,
-  AutoReactRule
+  AutoReactRule,
+  OwOConfig,
+  OwOStats
 } from '../src/types.js';
 
 interface ActiveClient {
@@ -38,6 +40,11 @@ interface ActiveClient {
   voiceSessionId: string | null;
   lastVoiceConnectAttempt: number;
   autoReactRules: Map<string, AutoReactRule>;
+  owoTimer: NodeJS.Timeout | null;
+  owoPrayTimer: NodeJS.Timeout | null;
+  owoDailyTimer: NodeJS.Timeout | null;
+  owoSleepTimeout: NodeJS.Timeout | null;
+  isOwOSleeping: boolean;
 }
 
 export class DiscordManager {
@@ -206,6 +213,36 @@ export class DiscordManager {
           enabled: false,
           message: 'Tài khoản đang AFK / Treo 24/7 trên Render Cloud 🚀',
         },
+        owoConfig: {
+          enabled: false,
+          channelId: '112233445566778899',
+          channelName: 'owo-bot',
+          guildName: 'Gaming Server',
+          autoHunt: true,
+          autoBattle: true,
+          autoPray: true,
+          prayUser: '',
+          autoDaily: true,
+          autoCoinflip: false,
+          coinflipAmount: 5,
+          autoSlots: false,
+          slotsAmount: 5,
+          minDelay: 15,
+          maxDelay: 19,
+          autoSleep: true,
+          sleepAfterMinutes: 35,
+          sleepDurationMinutes: 5,
+          captchaDetected: false,
+        },
+        owoStats: {
+          huntsCount: 142,
+          battlesCount: 142,
+          praysCount: 8,
+          dailiesCount: 1,
+          coinflipsCount: 0,
+          slotsCount: 0,
+          startedAt: Date.now() - 3600000 * 2,
+        },
         isConnected: true,
         isVoiceConnected: true,
         uptimeStart: Date.now() - 1000 * 60 * 142, // Đã chạy 2.3h
@@ -234,6 +271,11 @@ export class DiscordManager {
         voiceSessionId: 'demo-voice-session',
         lastVoiceConnectAttempt: 0,
         autoReactRules: new Map(),
+        owoTimer: null,
+        owoPrayTimer: null,
+        owoDailyTimer: null,
+        owoSleepTimeout: null,
+        isOwOSleeping: false,
       };
 
       this.clients.set(demoId, client);
@@ -375,8 +417,15 @@ export class DiscordManager {
   /**
    * Fetch voice channels for a guild
    */
-  public async fetchGuildChannels(token: string, guildId: string): Promise<DiscordChannel[]> {
+  public async fetchGuildChannels(token: string, guildId: string, channelType: 'voice' | 'text' | 'all' = 'voice'): Promise<DiscordChannel[]> {
     if (token === 'demo-token-preview') {
+      if (channelType === 'text') {
+        return [
+          { id: '112233445566778899', name: 'owo-bot 🐶', type: 0, position: 0 },
+          { id: '112233445566778898', name: 'bot-commands 🤖', type: 0, position: 1 },
+          { id: '112233445566778897', name: 'general-chat 💬', type: 0, position: 2 },
+        ];
+      }
       return [
         { id: 'chan-demo-111', name: 'Phòng Voice AFK 24/7 🔊', type: 2, position: 0 },
         { id: 'chan-demo-222', name: 'Góc Nghe Nhạc Lofi 🎧', type: 2, position: 1 },
@@ -397,9 +446,12 @@ export class DiscordManager {
       }
 
       const data = await res.json();
-      // Type 2: GUILD_VOICE, Type 13: GUILD_STAGE_VOICE
       return data
-        .filter((c: any) => c.type === 2 || c.type === 13)
+        .filter((c: any) => {
+          if (channelType === 'text') return c.type === 0;
+          if (channelType === 'all') return c.type === 0 || c.type === 2 || c.type === 13;
+          return c.type === 2 || c.type === 13;
+        })
         .map((c: any) => ({
           id: c.id,
           name: c.name,
@@ -468,6 +520,33 @@ export class DiscordManager {
           enabled: false,
           message: 'Hiện tại tôi đang AFK / bận, tôi sẽ phản hồi sau!',
         },
+        owoConfig: {
+          enabled: false,
+          channelId: '',
+          autoHunt: true,
+          autoBattle: true,
+          autoPray: true,
+          prayUser: '',
+          autoDaily: true,
+          autoCoinflip: false,
+          coinflipAmount: 5,
+          autoSlots: false,
+          slotsAmount: 5,
+          minDelay: 15,
+          maxDelay: 19,
+          autoSleep: true,
+          sleepAfterMinutes: 35,
+          sleepDurationMinutes: 5,
+          captchaDetected: false,
+        },
+        owoStats: {
+          huntsCount: 0,
+          battlesCount: 0,
+          praysCount: 0,
+          dailiesCount: 0,
+          coinflipsCount: 0,
+          slotsCount: 0,
+        },
         isConnected: false,
         isVoiceConnected: false,
         uptimeStart: null,
@@ -496,6 +575,11 @@ export class DiscordManager {
         voiceSessionId: null,
         lastVoiceConnectAttempt: 0,
         autoReactRules: new Map(),
+        owoTimer: null,
+        owoPrayTimer: null,
+        owoDailyTimer: null,
+        owoSleepTimeout: null,
+        isOwOSleeping: false,
       };
 
       this.clients.set(id, client);
@@ -609,6 +693,11 @@ export class DiscordManager {
     if (client.watchdogInterval) {
       clearInterval(client.watchdogInterval);
       client.watchdogInterval = null;
+    }
+
+    this.clearOwOTimers(client);
+    if (client.session.owoConfig) {
+      client.session.owoConfig.enabled = false;
     }
 
     this.cleanupVoiceWs(client);
@@ -976,7 +1065,9 @@ export class DiscordManager {
    * Xóa tin nhắn (stealth/silent execution)
    */
   public async deleteMessage(client: ActiveClient, channelId: string, messageId: string): Promise<boolean> {
-    if (client.session.id.startsWith('demo-')) return true;
+    if (client.session.id.startsWith('demo-')) {
+      return true;
+    }
     try {
       const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages/${messageId}`, {
         method: 'DELETE',
@@ -989,6 +1080,409 @@ export class DiscordManager {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Cập nhật cấu hình cày OwO Bot
+   */
+  public async updateOwOConfig(id: string, config: Partial<OwOConfig>): Promise<boolean> {
+    const client = this.clients.get(id);
+    if (!client) return false;
+
+    if (!client.session.owoConfig) {
+      client.session.owoConfig = {
+        enabled: false,
+        channelId: '',
+        autoHunt: true,
+        autoBattle: true,
+        autoPray: true,
+        prayUser: '',
+        autoDaily: true,
+        autoCoinflip: false,
+        coinflipAmount: 5,
+        autoSlots: false,
+        slotsAmount: 5,
+        minDelay: 15,
+        maxDelay: 19,
+        autoSleep: true,
+        sleepAfterMinutes: 35,
+        sleepDurationMinutes: 5,
+        captchaDetected: false,
+      };
+    }
+
+    client.session.owoConfig = {
+      ...client.session.owoConfig,
+      ...config,
+    };
+
+    if (config.channelId) {
+      this.resolveChannelName(client, config.channelId);
+    }
+
+    this.addLog('info', `Cập nhật cấu hình OwO: Kênh [${client.session.owoConfig.channelId || 'Chưa chọn'}], Auto-Hunt: ${client.session.owoConfig.autoHunt ? 'Bật' : 'Tắt'}, Auto-Battle: ${client.session.owoConfig.autoBattle ? 'Bật' : 'Tắt'}`, id);
+    return true;
+  }
+
+  /**
+   * Bắt đầu chạy cày OwO Bot tự động
+   */
+  public startOwOFarm(id: string): boolean {
+    const client = this.clients.get(id);
+    if (!client) return false;
+
+    if (!client.session.owoConfig) {
+      client.session.owoConfig = {
+        enabled: true,
+        channelId: '',
+        autoHunt: true,
+        autoBattle: true,
+        autoPray: true,
+        prayUser: '',
+        autoDaily: true,
+        autoCoinflip: false,
+        coinflipAmount: 5,
+        autoSlots: false,
+        slotsAmount: 5,
+        minDelay: 15,
+        maxDelay: 19,
+        autoSleep: true,
+        sleepAfterMinutes: 35,
+        sleepDurationMinutes: 5,
+        captchaDetected: false,
+      };
+    }
+
+    if (!client.session.owoConfig.channelId) {
+      this.addLog('warn', `[OwO Auto-Farm] Chưa chọn kênh cày OwO! Hãy dùng lệnh !owochannel trong kênh muốn cày hoặc cài trên Web.`, id);
+      return false;
+    }
+
+    if (client.session.owoConfig.captchaDetected) {
+      this.addLog('error', `[OwO Auto-Farm] 🚨 Captcha chưa được giải! Hãy vào Discord giải Captcha rồi gõ "!oworesume" hoặc bấm "Tiếp Tục Cày" trên Web để mở khóa.`, id);
+      return false;
+    }
+
+    this.clearOwOTimers(client);
+    client.session.owoConfig.enabled = true;
+    if (!client.session.owoStats) {
+      client.session.owoStats = {
+        huntsCount: 0,
+        battlesCount: 0,
+        praysCount: 0,
+        dailiesCount: 0,
+        coinflipsCount: 0,
+        slotsCount: 0,
+      };
+    }
+    client.session.owoStats.startedAt = client.session.owoStats.startedAt || Date.now();
+    client.isOwOSleeping = false;
+
+    this.addLog('success', `[OwO Auto-Farm] 🚀 BẮT ĐẦU CÀY OWO BOT 24/7 tại kênh ID: ${client.session.owoConfig.channelId}! Chu kỳ ngẫu nhiên: ${client.session.owoConfig.minDelay}s - ${client.session.owoConfig.maxDelay}s (Chống Ban Kèm Tự Động Nghỉ Giải Lao)`, id);
+
+    // Kích hoạt ngay chu kỳ đầu tiên sau 1.5s
+    client.owoTimer = setTimeout(() => {
+      this.runOwOCycle(client);
+    }, 1500);
+
+    // Kích hoạt chu kỳ pray (mỗi 5 phút)
+    if (client.session.owoConfig.autoPray) {
+      this.scheduleOwOPray(client);
+    }
+
+    // Kích hoạt kiểm tra daily
+    if (client.session.owoConfig.autoDaily) {
+      this.scheduleOwODaily(client);
+    }
+
+    // Kích hoạt chu kỳ nghỉ giải lao định kỳ
+    if (client.session.owoConfig.autoSleep) {
+      this.scheduleOwOSleep(client);
+    }
+
+    return true;
+  }
+
+  /**
+   * Dừng cày OwO Bot
+   */
+  public stopOwOFarm(id: string): boolean {
+    const client = this.clients.get(id);
+    if (!client) return false;
+
+    this.clearOwOTimers(client);
+    if (client.session.owoConfig) {
+      client.session.owoConfig.enabled = false;
+    }
+    client.isOwOSleeping = false;
+    this.addLog('info', `[OwO Auto-Farm] ⏹️ Đã dừng cày OwO Bot cho tài khoản [${client.session.name}].`, id);
+    return true;
+  }
+
+  /**
+   * Tiếp tục cày sau khi người dùng đã giải xong Captcha
+   */
+  public resumeOwOFarmAfterCaptcha(id: string): boolean {
+    const client = this.clients.get(id);
+    if (!client || !client.session.owoConfig) return false;
+
+    client.session.owoConfig.captchaDetected = false;
+    client.session.owoConfig.captchaMessage = undefined;
+    client.session.owoConfig.captchaDetectedAt = undefined;
+
+    this.addLog('success', `[OwO Auto-Farm] ✅ Đã xác nhận giải Captcha xong! Đang tiếp tục cày OwO...`, id);
+    return this.startOwOFarm(id);
+  }
+
+  /**
+   * Xóa thống kê cày OwO
+   */
+  public resetOwOStats(id: string): boolean {
+    const client = this.clients.get(id);
+    if (!client || !client.session.owoStats) return false;
+
+    client.session.owoStats = {
+      huntsCount: 0,
+      battlesCount: 0,
+      praysCount: 0,
+      dailiesCount: 0,
+      coinflipsCount: 0,
+      slotsCount: 0,
+      startedAt: Date.now(),
+    };
+    this.addLog('info', `[OwO Auto-Farm] Đã đặt lại bảng thống kê cày OwO.`, id);
+    return true;
+  }
+
+  private clearOwOTimers(client: ActiveClient) {
+    if (client.owoTimer) {
+      clearTimeout(client.owoTimer);
+      client.owoTimer = null;
+    }
+    if (client.owoPrayTimer) {
+      clearTimeout(client.owoPrayTimer);
+      client.owoPrayTimer = null;
+    }
+    if (client.owoDailyTimer) {
+      clearTimeout(client.owoDailyTimer);
+      client.owoDailyTimer = null;
+    }
+    if (client.owoSleepTimeout) {
+      clearTimeout(client.owoSleepTimeout);
+      client.owoSleepTimeout = null;
+    }
+  }
+
+  private async runOwOCycle(client: ActiveClient) {
+    if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+
+    if (client.isOwOSleeping) {
+      client.owoTimer = setTimeout(() => this.runOwOCycle(client), 15000);
+      return;
+    }
+
+    const channelId = client.session.owoConfig.channelId;
+    if (!channelId) return;
+
+    try {
+      // 1. Auto Hunt (owoh)
+      if (client.session.owoConfig.autoHunt) {
+        await this.sendRawChannelMessage(client, channelId, 'owoh');
+        if (client.session.owoStats) {
+          client.session.owoStats.huntsCount++;
+          client.session.owoStats.lastCommandSent = 'owoh';
+          client.session.owoStats.lastCommandAt = Date.now();
+        }
+        this.addLog('info', `[OwO Farm] 🏹 Gửi "owoh" (Tổng: ${client.session.owoStats?.huntsCount || 0} lần)`, client.session.id);
+      }
+
+      // 2. Auto Battle (owob) with 1.8s - 3.2s jitter
+      if (client.session.owoConfig.autoBattle) {
+        const jitter = 1800 + Math.floor(Math.random() * 1400);
+        await new Promise((r) => setTimeout(r, jitter));
+        if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+
+        await this.sendRawChannelMessage(client, channelId, 'owob');
+        if (client.session.owoStats) {
+          client.session.owoStats.battlesCount++;
+          client.session.owoStats.lastCommandSent = 'owob';
+          client.session.owoStats.lastCommandAt = Date.now();
+        }
+        this.addLog('info', `[OwO Farm] ⚔️ Gửi "owob" (Tổng: ${client.session.owoStats?.battlesCount || 0} lần)`, client.session.id);
+      }
+
+      // 3. Auto Coinflip (owo cf <amount>) optional
+      if (client.session.owoConfig.autoCoinflip) {
+        const jitter = 1800 + Math.floor(Math.random() * 1200);
+        await new Promise((r) => setTimeout(r, jitter));
+        if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+
+        const amt = client.session.owoConfig.coinflipAmount || 5;
+        await this.sendRawChannelMessage(client, channelId, `owo cf ${amt}`);
+        if (client.session.owoStats) {
+          client.session.owoStats.coinflipsCount++;
+        }
+      }
+
+      // 4. Auto Slots (owo slots <amount>) optional
+      if (client.session.owoConfig.autoSlots) {
+        const jitter = 1800 + Math.floor(Math.random() * 1200);
+        await new Promise((r) => setTimeout(r, jitter));
+        if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+
+        const amt = client.session.owoConfig.slotsAmount || 5;
+        await this.sendRawChannelMessage(client, channelId, `owo s ${amt}`);
+        if (client.session.owoStats) {
+          client.session.owoStats.slotsCount++;
+        }
+      }
+    } catch (err: any) {
+      this.addLog('warn', `[OwO Farm] Lỗi gửi lệnh cày: ${err.message}`, client.session.id);
+    }
+
+    // Schedule next cycle with random jitter
+    const minSec = client.session.owoConfig.minDelay || 15;
+    const maxSec = Math.max(minSec, client.session.owoConfig.maxDelay || 19);
+    const nextDelayMs = Math.floor((minSec + Math.random() * (maxSec - minSec)) * 1000);
+
+    client.owoTimer = setTimeout(() => {
+      this.runOwOCycle(client);
+    }, nextDelayMs);
+  }
+
+  private scheduleOwOPray(client: ActiveClient) {
+    if (!client.session.owoConfig?.enabled || !client.session.owoConfig?.autoPray) return;
+
+    const prayDelayMs = (300 + Math.floor(Math.random() * 15)) * 1000;
+
+    client.owoPrayTimer = setTimeout(async () => {
+      if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+      if (!client.isOwOSleeping && client.session.owoConfig.channelId) {
+        const target = client.session.owoConfig.prayUser?.trim() || '';
+        const prayCmd = target ? `owo pray ${target}` : 'owo pray';
+        await this.sendRawChannelMessage(client, client.session.owoConfig.channelId, prayCmd);
+        if (client.session.owoStats) {
+          client.session.owoStats.praysCount++;
+          client.session.owoStats.lastCommandSent = prayCmd;
+          client.session.owoStats.lastCommandAt = Date.now();
+        }
+        this.addLog('info', `[OwO Farm] 🙏 Gửi "${prayCmd}" (Tổng: ${client.session.owoStats?.praysCount || 0} lần)`, client.session.id);
+      }
+      this.scheduleOwOPray(client);
+    }, prayDelayMs);
+  }
+
+  private scheduleOwODaily(client: ActiveClient) {
+    if (!client.session.owoConfig?.enabled || !client.session.owoConfig?.autoDaily) return;
+
+    client.owoDailyTimer = setTimeout(async () => {
+      if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+      if (!client.isOwOSleeping && client.session.owoConfig.channelId) {
+        await this.sendRawChannelMessage(client, client.session.owoConfig.channelId, 'owo daily');
+        if (client.session.owoStats) {
+          client.session.owoStats.dailiesCount++;
+        }
+        this.addLog('info', `[OwO Farm] 🎁 Gửi "owo daily" nhận thưởng ngày!`, client.session.id);
+      }
+      this.scheduleOwODaily(client);
+    }, 6 * 3600 * 1000);
+  }
+
+  private scheduleOwOSleep(client: ActiveClient) {
+    if (!client.session.owoConfig?.enabled || !client.session.owoConfig?.autoSleep) return;
+
+    const workMinutes = client.session.owoConfig.sleepAfterMinutes || 35;
+    const sleepMinutes = client.session.owoConfig.sleepDurationMinutes || 5;
+
+    client.owoSleepTimeout = setTimeout(() => {
+      if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+
+      client.isOwOSleeping = true;
+      this.addLog(
+        'warn',
+        `[OwO Nghỉ Giải Lao] ☕ Tạm dừng cày ${sleepMinutes} phút để giả lập hành vi người thật (chống bot detection). Sẽ tự động cày tiếp sau giờ nghỉ!`,
+        client.session.id
+      );
+
+      setTimeout(() => {
+        if (!client.session.owoConfig?.enabled || client.session.owoConfig?.captchaDetected) return;
+        client.isOwOSleeping = false;
+        this.addLog('success', `[OwO Cày Tiếp] ⚡ Hết giờ nghỉ giải lao, tiếp tục chu kỳ cày OwO tự động!`, client.session.id);
+        this.scheduleOwOSleep(client);
+      }, sleepMinutes * 60 * 1000);
+    }, workMinutes * 60 * 1000);
+  }
+
+  /**
+   * Phát hiện Captcha từ OwO Bot -> Lập tức dừng cày và cảnh báo khẩn cấp
+   */
+  private handleOwOCaptchaDetected(client: ActiveClient, alertMessage: string) {
+    this.clearOwOTimers(client);
+    if (!client.session.owoConfig) return;
+
+    client.session.owoConfig.captchaDetected = true;
+    client.session.owoConfig.captchaMessage = alertMessage;
+    client.session.owoConfig.captchaDetectedAt = Date.now();
+    client.isOwOSleeping = false;
+
+    this.addLog(
+      'error',
+      `🚨 [CẢNH BÁO OWO CAPTCHA] PHÁT HIỆN OWO GỬI CAPTCHA XÁC MINH! ĐÃ LẬP TỨC DỪNG TẤT CẢ LỆNH CÀY ĐỂ BẢO VỆ TÀI KHOẢN KHỎI BỊ BAN! Nội dung OwO: "${alertMessage.substring(0, 150)}". Vui lòng vào giải captcha rồi gõ !oworesume hoặc bấm "Tiếp Tục Cày" trên Web!`,
+      client.session.id
+    );
+  }
+
+  /**
+   * Gửi tin nhắn thô trực tiếp vào kênh Discord (không prefix/phản hồi)
+   */
+  public async sendRawChannelMessage(client: ActiveClient, channelId: string, content: string): Promise<boolean> {
+    if (client.session.id.startsWith('demo-')) {
+      this.addLog('info', `[DEMO OwO Chat] ${content} ➔ Kênh: ${channelId}`, client.session.id);
+      return true;
+    }
+
+    try {
+      const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, {
+        method: 'POST',
+        headers: {
+          Authorization: client.session.token,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          const rateData: any = await res.json().catch(() => ({}));
+          this.addLog('warn', `[Rate Limit OwO] Discord yêu cầu chờ ${rateData?.retry_after || 2}s`, client.session.id);
+        }
+        return false;
+      }
+      return true;
+    } catch (err: any) {
+      this.addLog('error', `Lỗi khi gửi lệnh OwO: ${err.message}`, client.session.id);
+      return false;
+    }
+  }
+
+  private async resolveChannelName(client: ActiveClient, channelId: string) {
+    if (!channelId || client.session.id.startsWith('demo-')) return;
+    try {
+      const res = await fetch(`https://discord.com/api/v9/channels/${channelId}`, {
+        headers: {
+          Authorization: client.session.token,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        },
+      });
+      if (res.ok) {
+        const ch = await res.json();
+        if (client.session.owoConfig) {
+          client.session.owoConfig.channelName = ch.name || channelId;
+          client.session.owoConfig.guildId = ch.guild_id;
+        }
+      }
+    } catch {}
   }
 
   private buildActivities(session: AccountSession): any[] {
@@ -1660,6 +2154,43 @@ export class DiscordManager {
         if (matchUser && matchGuild && matchChannel) {
           this.addReaction(client, msg.channel_id, msg.id, rule.emoji).catch(() => {});
           this.addLog('info', `[Auto-React] Tự động thả ${rule.emoji} vào tin nhắn của @${msg.author?.username || authorId} tại kênh ${msg.channel_id}`, client.session.id);
+        }
+      }
+    }
+
+    // 0.2. Phát hiện phản hồi và Captcha từ bot OwO (ID: 408785106942164992 hoặc name OwO)
+    if (!isOwner && client.session.owoConfig?.enabled) {
+      const isOwOBot = msg.author?.id === '408785106942164992' || (msg.author?.username || '').toLowerCase() === 'owo';
+      if (isOwOBot) {
+        const isMentioned = msg.mentions?.some((m: any) => m.id === client.session.id);
+        const isDM = !msg.guild_id;
+        const msgText = (msg.content || '') + ' ' + (msg.embeds?.map((e: any) => `${e.title || ''} ${e.description || ''}`).join(' ') || '');
+        const lowerText = msgText.toLowerCase();
+
+        const mentionsMe = isMentioned || isDM || lowerText.includes(client.session.id) || lowerText.includes(client.session.username.toLowerCase());
+
+        // Kiểm tra từ khóa Captcha
+        const isCaptcha = 
+          lowerText.includes('beep boop') ||
+          lowerText.includes('verify') ||
+          lowerText.includes('captcha') ||
+          lowerText.includes('are you a real human') ||
+          lowerText.includes('please complete your captcha') ||
+          lowerText.includes('check your dm') ||
+          lowerText.includes('link.owobot.com');
+
+        if (mentionsMe && isCaptcha) {
+          this.handleOwOCaptchaDetected(client, msgText);
+          return;
+        }
+
+        // Tự động cập nhật cowoncy nếu có
+        const cowoncyMatch = msgText.match(/([0-9,]+)\s*(?:cowoncy|<:cowoncy:)/i);
+        if (cowoncyMatch && mentionsMe && client.session.owoStats) {
+          const cowoncy = parseInt(cowoncyMatch[1].replace(/,/g, ''), 10);
+          if (!isNaN(cowoncy)) {
+            client.session.owoStats.cowoncyEarned = cowoncy;
+          }
         }
       }
     }
