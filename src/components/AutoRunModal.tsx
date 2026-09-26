@@ -16,14 +16,16 @@ import {
   Gamepad2, 
   Copy, 
   Check, 
-  ShieldCheck 
+  ShieldCheck,
+  Smartphone
 } from 'lucide-react';
-import type { DiscordStatus, ActivityConfig, VoiceConfig } from '../types.js';
+import type { DiscordStatus, ActivityConfig, VoiceConfig, DeviceType } from '../types.js';
 
 interface AutoConfigResponse {
   hasEnvToken: boolean;
   maskedToken: string | null;
   defaults: {
+    deviceType?: DeviceType;
     status: DiscordStatus;
     customStatus: string;
     customEmoji: string;
@@ -50,8 +52,9 @@ export const AutoRunModal: React.FC<Props> = ({ isOpen, onClose, onAutoRunSucces
   const [token, setToken] = useState('');
   const [prefix, setPrefix] = useState('!');
   const [rememberToken, setRememberToken] = useState(true);
-  const [selectedPreset, setSelectedPreset] = useState<'twitch' | 'vscode' | 'spotify' | 'gaming'>('gaming');
-  const [customStatusText, setCustomStatusText] = useState('Đang leo rank Valorant 🔥');
+  const [selectedPreset, setSelectedPreset] = useState<'mobile_pure' | 'twitch' | 'vscode' | 'spotify' | 'gaming'>('mobile_pure');
+  const [deviceType, setDeviceType] = useState<DeviceType>('mobile');
+  const [customStatusText, setCustomStatusText] = useState('');
   const [guildId, setGuildId] = useState('');
   const [channelId, setChannelId] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -142,14 +145,23 @@ export const AutoRunModal: React.FC<Props> = ({ isOpen, onClose, onAutoRunSucces
 
     // Activity preset
     let activity: ActivityConfig = {
-      name: 'Twitch',
-      type: 1,
-      details: 'Live Coding Discord Selfbot 24/7',
-      state: 'Hosting on Render Free Cloud',
-      url: 'https://twitch.tv/discord_live_stream',
+      name: '',
+      type: 0,
     };
+    let activeDevType: DeviceType = deviceType;
 
-    if (selectedPreset === 'vscode') {
+    if (selectedPreset === 'mobile_pure') {
+      activeDevType = 'mobile';
+      activity = { name: '', type: 0 };
+    } else if (selectedPreset === 'twitch') {
+      activity = {
+        name: 'Twitch',
+        type: 1,
+        details: 'Live Coding Discord Selfbot 24/7',
+        state: 'Hosting on Render Free Cloud',
+        url: 'https://twitch.tv/discord_live_stream',
+      };
+    } else if (selectedPreset === 'vscode') {
       activity = {
         name: 'Visual Studio Code',
         type: 0,
@@ -188,9 +200,12 @@ export const AutoRunModal: React.FC<Props> = ({ isOpen, onClose, onAutoRunSucces
         body: JSON.stringify({
           token: token.trim(),
           prefix: prefix.trim() || '!',
+          deviceType: activeDevType,
           autoConnect: true,
           status: 'online',
-          customStatus: { text: customStatusText.trim() || 'Treo 24/7 trên Render.com 🚀', emojiName: '💻' },
+          customStatus: selectedPreset === 'mobile_pure' 
+            ? { text: '', emojiName: '' } 
+            : { text: customStatusText.trim(), emojiName: '⚡' },
           activity,
           voice,
         }),
@@ -332,10 +347,35 @@ export const AutoRunModal: React.FC<Props> = ({ isOpen, onClose, onAutoRunSucces
                 <label className="text-xs font-semibold text-slate-300 block mb-2">
                   Chọn Kiểu Hoạt Động & Trạng Thái Muốn Treo:
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedPreset('twitch')}
+                    onClick={() => {
+                      setSelectedPreset('mobile_pure');
+                      setCustomStatusText('');
+                    }}
+                    className={`w-full p-3.5 rounded-xl border text-left flex items-start gap-3 transition cursor-pointer ${
+                      selectedPreset === 'mobile_pure'
+                        ? 'bg-emerald-950/60 border-emerald-400 text-white ring-2 ring-emerald-500/40 shadow-lg'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                  >
+                    <Smartphone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-emerald-300">📱 Treo Điện Thoại Tinh Khiết 24/7 (Khuyên Dùng)</span>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.2 rounded-full font-semibold">Đúng Yêu Cầu Bạn</span>
+                      </div>
+                      <div className="text-[11px] text-slate-300 mt-0.5">
+                        Treo Online liên tục với biểu tượng <b>Cái Điện Thoại (📱)</b>, <b>không status</b> và <b>không hoạt động/game</b> gì cả.
+                      </div>
+                    </div>
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPreset('twitch')}
                     className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
                       selectedPreset === 'twitch'
                         ? 'bg-purple-950/40 border-purple-500 text-white ring-1 ring-purple-500/30'
@@ -398,8 +438,9 @@ export const AutoRunModal: React.FC<Props> = ({ isOpen, onClose, onAutoRunSucces
                   </button>
                 </div>
               </div>
+            </div>
 
-              {/* Custom Status Text */}
+            {/* Custom Status Text */}
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1.5">
                   Dòng Trạng Thái Tuỳ Chỉnh (Custom Status):

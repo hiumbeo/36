@@ -13,9 +13,15 @@ import {
   Clock, 
   Save, 
   Radio,
-  Smile
+  Smile,
+  Smartphone,
+  Monitor,
+  Globe,
+  Apple,
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
-import type { AccountSession, DiscordStatus, ActivityType, RotatingStatusItem } from '../types.js';
+import type { AccountSession, DiscordStatus, ActivityType, RotatingStatusItem, DeviceType } from '../types.js';
 import { getActivityTypeLabel } from '../utils/format.js';
 
 interface Props {
@@ -30,14 +36,19 @@ interface Props {
     intervalSeconds: number,
     items: RotatingStatusItem[]
   ) => Promise<void>;
+  onUpdateDevice?: (deviceType: DeviceType) => Promise<void>;
+  onPureMobile?: () => Promise<void>;
 }
 
 export const StatusController: React.FC<Props> = ({
   account,
   onUpdatePresence,
   onUpdateRotatingStatus,
+  onUpdateDevice,
+  onPureMobile,
 }) => {
   const [activeTab, setActiveTab] = useState<'presence' | 'rotating'>('presence');
+  const [deviceType, setDeviceType] = useState<DeviceType>(account.deviceType || 'mobile');
   const [status, setStatus] = useState<DiscordStatus>(account.status || 'online');
   const [customText, setCustomText] = useState(account.customStatus?.text || '');
   const [emojiName, setEmojiName] = useState(account.customStatus?.emojiName || '⚡');
@@ -85,10 +96,11 @@ export const StatusController: React.FC<Props> = ({
 
   // Sync state when selected account changes
   useEffect(() => {
+    setDeviceType(account.deviceType || 'mobile');
     setStatus(account.status || 'online');
     setCustomText(account.customStatus?.text || '');
     setEmojiName(account.customStatus?.emojiName || '⚡');
-    setActivityName(account.activity?.name || 'Visual Studio Code');
+    setActivityName(account.activity?.name || '');
     setActivityType(account.activity?.type ?? 0);
     setActivityDetails(account.activity?.details || '');
     setActivityState(account.activity?.state || '');
@@ -98,7 +110,48 @@ export const StatusController: React.FC<Props> = ({
     if (account.rotatingStatus?.items && account.rotatingStatus.items.length > 0) {
       setRotationItems(account.rotatingStatus.items);
     }
-  }, [account.id]);
+  }, [account.id, account.deviceType]);
+
+  const handleDeviceSelect = async (type: DeviceType) => {
+    setDeviceType(type);
+    if (onUpdateDevice) {
+      try {
+        await onUpdateDevice(type);
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 2000);
+      } catch (err: any) {
+        alert(err.message || 'Lỗi khi cập nhật thiết bị');
+      }
+    }
+  };
+
+  const handlePureMobileMode = async () => {
+    setStatus('online');
+    setDeviceType('mobile');
+    setCustomText('');
+    setEmojiName('');
+    setActivityName('');
+    setActivityType(0);
+    setActivityDetails('');
+    setActivityState('');
+    setStreamingUrl('');
+    setRotationEnabled(false);
+
+    if (onPureMobile) {
+      setIsSaving(true);
+      try {
+        await onPureMobile();
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 2500);
+      } catch (err: any) {
+        alert(err.message || 'Lỗi khi kích hoạt chế độ treo điện thoại');
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      await handleApplyPresence();
+    }
+  };
 
   const handleApplyPresence = async () => {
     setIsSaving(true);
@@ -155,7 +208,11 @@ export const StatusController: React.FC<Props> = ({
   };
 
   // Quick Preset Handlers
-  const applyPreset = (preset: 'vscode' | 'streaming' | 'spotify' | 'soundcloud' | 'gaming') => {
+  const applyPreset = (preset: 'pure_mobile' | 'vscode' | 'streaming' | 'spotify' | 'soundcloud' | 'gaming') => {
+    if (preset === 'pure_mobile') {
+      handlePureMobileMode();
+      return;
+    }
     if (preset === 'vscode') {
       setStatus('online');
       setCustomText('Coding mode on 💻');
@@ -210,7 +267,7 @@ export const StatusController: React.FC<Props> = ({
             Cài Đặt Trạng Thái & Rich Presence
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Tùy biến Online, Hoạt động chơi game, Stream Twitch (tím) hoặc tự động xoay vòng status
+            Tùy biến Online, Icon Điện Thoại (📱), Hoạt động chơi game, Stream Twitch hoặc đổi Status tự động
           </p>
         </div>
 
@@ -246,12 +303,121 @@ export const StatusController: React.FC<Props> = ({
 
       {activeTab === 'presence' ? (
         <div className="space-y-6">
+          {/* BANNER ĐẶC BIỆT: CHỌN BIỂU TƯỢNG THIẾT BỊ DISCORD (DEVICE BADGE) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-indigo-950/40 border border-emerald-500/40 shadow-xl space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <label className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4 text-emerald-400" />
+                    Biểu Tượng Thiết Bị Hiển Thị Trên Discord (Device Badge)
+                  </label>
+                </div>
+                <p className="text-xs text-slate-300 mt-1">
+                  Đang chọn: <b className="text-emerald-400 font-semibold">{deviceType === 'mobile' ? '📱 Điện Thoại (Discord Android)' : deviceType === 'ios' ? '🍏 iPhone (Discord iOS)' : deviceType === 'desktop' ? '💻 Máy Tính (PC)' : '🌐 Trình Duyệt Web'}</b>
+                  <span className="text-slate-400 text-[11px] block sm:inline sm:ml-2">
+                    {deviceType === 'mobile' || deviceType === 'ios' ? '• Bạn bè sẽ thấy icon Cái Điện Thoại 📱 cạnh Avatar!' : '• Bạn bè sẽ thấy chấm tròn máy tính thông thường.'}
+                  </span>
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePureMobileMode}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 shrink-0 cursor-pointer self-start sm:self-auto border border-emerald-400/30"
+              >
+                <Zap className="w-4 h-4 text-amber-300 fill-amber-300 animate-bounce" />
+                ⚡ 1-Click Treo Điện Thoại Tinh Khiết
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => handleDeviceSelect('mobile')}
+                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'mobile'
+                    ? 'bg-emerald-950/80 border-emerald-400 ring-2 ring-emerald-500/40 text-white shadow-lg'
+                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-300">
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  Điện thoại 📱
+                </div>
+                <div className="text-[10px] text-emerald-400 font-medium">Discord Android (Chuẩn)</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDeviceSelect('ios')}
+                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'ios'
+                    ? 'bg-emerald-950/80 border-emerald-400 ring-2 ring-emerald-500/40 text-white shadow-lg'
+                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                  <Apple className="w-4 h-4 text-slate-300" />
+                  iPhone iOS 🍏
+                </div>
+                <div className="text-[10px] text-slate-400">Discord iOS Badge</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDeviceSelect('desktop')}
+                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'desktop'
+                    ? 'bg-indigo-950/80 border-indigo-400 ring-2 ring-indigo-500/40 text-white shadow-lg'
+                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                  <Monitor className="w-4 h-4 text-slate-300" />
+                  Máy tính PC 💻
+                </div>
+                <div className="text-[10px] text-slate-400">Desktop Client</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDeviceSelect('web')}
+                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'web'
+                    ? 'bg-indigo-950/80 border-indigo-400 ring-2 ring-indigo-500/40 text-white shadow-lg'
+                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                  <Globe className="w-4 h-4 text-slate-300" />
+                  Trình duyệt 🌐
+                </div>
+                <div className="text-[10px] text-slate-400">Web Chrome</div>
+              </button>
+            </div>
+          </div>
+
           {/* Quick Presets */}
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
               Mẫu cấu hình nhanh (1-Click Presets)
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              <button
+                type="button"
+                onClick={() => applyPreset('pure_mobile')}
+                className="px-3 py-2 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 hover:border-emerald-400 rounded-xl text-left transition group cursor-pointer"
+              >
+                <div className="font-bold text-xs text-emerald-300 flex items-center gap-1">
+                  <span>📱 ĐT Tinh Khiết</span>
+                </div>
+                <div className="text-[10px] text-emerald-400/80 mt-0.5">Không status / game</div>
+              </button>
               <button
                 type="button"
                 onClick={() => applyPreset('vscode')}

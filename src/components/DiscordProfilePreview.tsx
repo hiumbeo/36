@@ -28,9 +28,16 @@ interface Props {
     activity: ActivityConfig, 
     customStatus: { text: string; emojiName?: string }
   ) => Promise<void>;
+  onUpdateDevice?: (deviceType: 'mobile' | 'ios' | 'desktop' | 'web') => Promise<void>;
+  onPureMobile?: () => Promise<void>;
 }
 
-export const DiscordProfilePreview: React.FC<Props> = ({ account, onUpdatePresence }) => {
+export const DiscordProfilePreview: React.FC<Props> = ({ 
+  account, 
+  onUpdatePresence,
+  onUpdateDevice,
+  onPureMobile 
+}) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'activity'>('profile');
   const [simulatedTime, setSimulatedTime] = useState('02:14:35');
 
@@ -172,6 +179,21 @@ export const DiscordProfilePreview: React.FC<Props> = ({ account, onUpdatePresen
           <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Thử nhanh:</span>
           <button
             type="button"
+            onClick={async () => {
+              if (onPureMobile) {
+                await onPureMobile();
+              } else if (onUpdatePresence) {
+                await onUpdatePresence('online', { name: '', type: 0 }, { text: '' });
+              }
+            }}
+            title="Kích hoạt Treo Điện Thoại Tinh Khiết 24/7 (Không status, không game, icon điện thoại)"
+            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1 cursor-pointer shadow-sm"
+          >
+            <span>📱 Treo Phone (Pure)</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleQuickValorant}
             title="Kích hoạt trạng thái đang chơi VALORANT trên Discord"
             className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 transition flex items-center gap-1 cursor-pointer"
@@ -250,8 +272,8 @@ export const DiscordProfilePreview: React.FC<Props> = ({ account, onUpdatePresen
               )}
             </div>
 
-            {/* Live Discord Status Indicator Dot */}
-            <div className="absolute bottom-1 right-1">
+            {/* Live Discord Status Indicator Dot or Mobile Phone Icon */}
+            <div className="absolute -bottom-1 -right-1">
               {isStreaming ? (
                 <div 
                   title="Streaming trên Twitch"
@@ -259,9 +281,28 @@ export const DiscordProfilePreview: React.FC<Props> = ({ account, onUpdatePresen
                 >
                   <div className="w-2 h-2 rounded-full bg-white" />
                 </div>
+              ) : (account?.deviceType === 'mobile' || account?.deviceType === 'ios') ? (
+                /* Authentic Discord Mobile Phone Indicator Badge */
+                <div
+                  title={`Đang Online bằng ${account?.deviceType === 'ios' ? 'iPhone (iOS)' : 'Điện thoại (Android)'} - Biểu tượng Điện Thoại Discord`}
+                  className="w-7 h-7 rounded-full bg-[#111214] flex items-center justify-center shadow-lg border border-emerald-500/40"
+                >
+                  <div className={`w-3.5 h-[19px] rounded-[3.5px] flex flex-col items-center justify-between p-[1.5px] shadow-sm ${
+                    currentStatus === 'online' ? 'bg-[#23a55a]' :
+                    currentStatus === 'idle' ? 'bg-[#f0b232]' :
+                    currentStatus === 'dnd' ? 'bg-[#f23f43]' : 'bg-[#80848e]'
+                  }`}>
+                    {/* Top speaker slit */}
+                    <div className="w-1.5 h-[1px] bg-[#111214] rounded-full" />
+                    {/* Screen cutout */}
+                    <div className="w-2.5 h-2.5 bg-[#111214] rounded-[1.5px]" />
+                    {/* Home button dot */}
+                    <div className="w-1 h-1 rounded-full bg-[#111214]" />
+                  </div>
+                </div>
               ) : currentStatus === 'online' ? (
                 <div 
-                  title="Trực tuyến (Online)"
+                  title="Trực tuyến trên Máy tính (PC / Desktop)"
                   className="w-5 h-5 rounded-full bg-[#23a55a] border-2 border-[#111214] shadow-md" 
                 />
               ) : currentStatus === 'idle' ? (
@@ -296,6 +337,11 @@ export const DiscordProfilePreview: React.FC<Props> = ({ account, onUpdatePresen
                 <h4 className="text-base font-bold text-white tracking-wide">
                   {account?.name || 'Tên Người Dùng'}
                 </h4>
+                {(account?.deviceType === 'mobile' || account?.deviceType === 'ios') && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
+                    📱 {account.deviceType === 'ios' ? 'iPhone' : 'Điện Thoại 24/7'}
+                  </span>
+                )}
                 {isStreaming && (
                   <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-[#593695] text-white uppercase tracking-wider">
                     LIVE

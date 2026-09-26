@@ -561,6 +561,46 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       return true;
     }
 
+    case 'mobile':
+    case 'phone':
+    case 'dienthoai':
+    case 'pure':
+    case 'afk247':
+    case 'clean': {
+      manager.setPureOnlineMobile(client.session.id);
+      await sendOrEdit(
+        msg.channel_id,
+        msg.id,
+        `📱 **ĐÃ BẬT CHẾ ĐỘ TREO ĐIỆN THOẠI TINH KHIẾT 24/7!**\n• 🟢 **Trạng thái:** Trực tuyến liên tục (Online 24/7)\n• 📱 **Biểu tượng Discord:** Cái Điện Thoại xanh lá (Discord Mobile Badge)\n• 🧹 **Không Status & Không Game:** Hoàn toàn tinh khiết theo đúng yêu cầu!`
+      );
+      return true;
+    }
+
+    case 'device':
+    case 'thietbi': {
+      const type = (args[0] || '').toLowerCase();
+      const validTypes = ['mobile', 'phone', 'ios', 'iphone', 'desktop', 'pc', 'web'];
+      if (!type || !validTypes.includes(type)) {
+        await sendOrEdit(
+          msg.channel_id,
+          msg.id,
+          `❌ Loại thiết bị không hợp lệ! Vui lòng chọn:\n• \`${p}device mobile\` : 📱 Biểu tượng Điện thoại (Android)\n• \`${p}device ios\` : 🍏 Điện thoại iPhone (iOS)\n• \`${p}device desktop\` : 💻 Máy tính (PC Desktop)\n• \`${p}device web\` : 🌐 Trình duyệt Web`
+        );
+        return true;
+      }
+
+      let targetType: 'mobile' | 'ios' | 'desktop' | 'web' = 'mobile';
+      if (type === 'mobile' || type === 'phone') targetType = 'mobile';
+      else if (type === 'ios' || type === 'iphone') targetType = 'ios';
+      else if (type === 'desktop' || type === 'pc') targetType = 'desktop';
+      else if (type === 'web') targetType = 'web';
+
+      await manager.updateDeviceType(client.session.id, targetType);
+      const icon = targetType === 'mobile' ? '📱 Điện thoại (Android)' : targetType === 'ios' ? '🍏 iPhone (iOS)' : targetType === 'desktop' ? '💻 Máy tính (PC)' : '🌐 Trình duyệt';
+      await sendOrEdit(msg.channel_id, msg.id, `✅ Đã chuyển thiết bị sang **${icon}**. Discord đã được cập nhật biểu tượng!`);
+      return true;
+    }
+
     // ==========================================
     // 2. TIỆN ÍCH & THÔNG TIN HỆ THỐNG (20 Lệnh)
     // ==========================================

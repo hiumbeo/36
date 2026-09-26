@@ -209,6 +209,22 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
     categoryLabel: '🎮 Gaming & Trạng Thái',
     example: `${p}clearact`,
   },
+  {
+    name: 'mobile',
+    syntax: `${p}mobile (hoặc ${p}pure)`,
+    desc: 'Bật chế độ Treo Điện Thoại Tinh Khiết 24/7: Online liên tục, hiện icon Điện Thoại xanh lá (📱), gỡ bỏ toàn bộ status và game.',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}mobile`,
+  },
+  {
+    name: 'device',
+    syntax: `${p}device <mobile|ios|desktop|web>`,
+    desc: 'Đổi biểu tượng thiết bị đăng nhập Discord (📱 Điện thoại Android, 🍏 iPhone iOS, 💻 Máy tính PC, 🌐 Trình duyệt Web).',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}device mobile`,
+  },
 
   // 2. Tiện Ích & Hệ Thống (20 Lệnh)
   {

@@ -208,13 +208,22 @@ export const AccountSelector: React.FC<Props> = ({
                         {account.name[0]?.toUpperCase() || 'U'}
                       </div>
                     )}
-                    {/* Status Badge Dot */}
-                    <span
-                      className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full ring-2 ring-slate-900 ${
-                        account.isConnected ? statusStyle.dot : 'bg-slate-600'
-                      }`}
-                      title={account.isConnected ? account.status : 'Chưa kết nối'}
-                    />
+                    {/* Status Badge Dot or Mobile Badge */}
+                    {account.isConnected && (account.deviceType === 'mobile' || account.deviceType === 'ios') ? (
+                      <span
+                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-950 flex items-center justify-center border border-emerald-500/50 text-[11px] shadow"
+                        title={`Đang Online bằng ${account.deviceType === 'ios' ? 'iPhone' : 'Điện thoại'} (Discord Mobile Badge)`}
+                      >
+                        📱
+                      </span>
+                    ) : (
+                      <span
+                        className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full ring-2 ring-slate-900 ${
+                          account.isConnected ? statusStyle.dot : 'bg-slate-600'
+                        }`}
+                        title={account.isConnected ? account.status : 'Chưa kết nối'}
+                      />
+                    )}
                   </div>
 
                   <div className="min-w-0">
@@ -223,6 +232,11 @@ export const AccountSelector: React.FC<Props> = ({
                       {account.id.startsWith('demo-') && (
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold shrink-0">
                           Demo
+                        </span>
+                      )}
+                      {account.deviceType === 'mobile' && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold shrink-0">
+                          📱 Mobile
                         </span>
                       )}
                     </div>

@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
-import { X, Key, CheckCircle2, AlertTriangle, HelpCircle, Copy, Check, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
+import { X, Key, CheckCircle2, AlertTriangle, HelpCircle, Copy, Check, ShieldAlert, Sparkles, Loader2, Smartphone, Monitor, Globe, Apple } from 'lucide-react';
+import type { DeviceType } from '../types.js';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onAccountAdded: (token: string, autoConnect: boolean) => Promise<void>;
+  onAccountAdded: (
+    token: string, 
+    autoConnect: boolean, 
+    deviceType?: DeviceType, 
+    pureOnline?: boolean
+  ) => Promise<void>;
 }
 
 export const AddAccountModal: React.FC<Props> = ({ isOpen, onClose, onAccountAdded }) => {
   const [token, setToken] = useState('');
+  const [deviceType, setDeviceType] = useState<DeviceType>('mobile');
+  const [pureOnline, setPureOnline] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
@@ -48,7 +56,7 @@ export const AddAccountModal: React.FC<Props> = ({ isOpen, onClose, onAccountAdd
 
     setIsSubmitting(true);
     try {
-      await onAccountAdded(token.trim(), autoConnect);
+      await onAccountAdded(token.trim(), autoConnect, deviceType, pureOnline);
       setToken('');
       setValidationResult(null);
       onClose();
@@ -241,6 +249,104 @@ export const AddAccountModal: React.FC<Props> = ({ isOpen, onClose, onAccountAdd
               )}
             </div>
           )}
+
+          {/* Chọn Loại Thiết Bị (Device Type) */}
+          <div className="space-y-2 pt-1 border-t border-slate-800">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                Biểu Tượng Thiết Bị Hiển Thị Trên Discord:
+              </label>
+              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                {deviceType === 'mobile' ? '📱 Điện Thoại (Android)' : deviceType === 'ios' ? '🍏 iPhone (iOS)' : deviceType === 'desktop' ? '💻 Máy Tính' : '🌐 Trình Duyệt'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setDeviceType('mobile')}
+                className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'mobile'
+                    ? 'bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-lg'
+                    : 'bg-slate-950/50 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-300">
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  Điện thoại 📱
+                </div>
+                <div className="text-[10px] text-emerald-400/80 font-medium">Khuyên dùng (Đúng brief)</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeviceType('ios')}
+                className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'ios'
+                    ? 'bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/20 shadow-lg'
+                    : 'bg-slate-950/50 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                  <Apple className="w-4 h-4 text-slate-300" />
+                  iPhone iOS 🍏
+                </div>
+                <div className="text-[10px] text-slate-500">Icon điện thoại</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeviceType('desktop')}
+                className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'desktop'
+                    ? 'bg-indigo-950/60 border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg'
+                    : 'bg-slate-950/50 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                  <Monitor className="w-4 h-4 text-slate-300" />
+                  Máy tính PC 💻
+                </div>
+                <div className="text-[10px] text-slate-500">Chấm tròn xanh</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeviceType('web')}
+                className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'web'
+                    ? 'bg-indigo-950/60 border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg'
+                    : 'bg-slate-950/50 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                  <Globe className="w-4 h-4 text-slate-300" />
+                  Trình duyệt 🌐
+                </div>
+                <div className="text-[10px] text-slate-500">Web Chrome</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Chế độ Treo Tinh Khiết Checkbox */}
+          <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-xl space-y-2">
+            <div className="flex items-start gap-2.5">
+              <input
+                id="pure-online-check"
+                type="checkbox"
+                checked={pureOnline}
+                onChange={(e) => setPureOnline(e.target.checked)}
+                className="w-4 h-4 rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500 mt-0.5 cursor-pointer"
+              />
+              <label htmlFor="pure-online-check" className="text-xs text-slate-200 cursor-pointer">
+                <span className="font-bold text-emerald-300">Treo Điện Thoại 24/7 Tinh Khiết (Theo Yêu Cầu Của Bạn):</span>
+                <span className="block text-[11px] text-slate-400 mt-0.5">
+                  Chỉ treo Online liên tục với icon Điện Thoại (📱). Hoàn toàn <b>không</b> status, <b>không</b> chơi game hay stream.
+                </span>
+              </label>
+            </div>
+          </div>
 
           {/* Auto-connect checkbox */}
           <div className="flex items-center gap-2.5 pt-1">

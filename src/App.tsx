@@ -174,11 +174,26 @@ export default function App() {
     };
   }, []);
 
-  const handleAddAccount = async (token: string, autoConnect: boolean) => {
+  const handleAddAccount = async (
+    token: string, 
+    autoConnect: boolean, 
+    deviceType: 'mobile' | 'ios' | 'desktop' | 'web' = 'mobile',
+    pureOnline: boolean = true
+  ) => {
+    const payload: any = {
+      token: token.trim(),
+      deviceType,
+      status: 'online',
+    };
+    if (pureOnline) {
+      payload.customStatus = { text: '', emojiName: '' };
+      payload.activity = { name: '', type: 0 };
+    }
+
     const res = await fetch('/api/selfbot/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
@@ -195,6 +210,33 @@ export default function App() {
       await fetch(`/api/selfbot/accounts/${newSession.id}/connect`, { method: 'POST' });
       await fetchSessions();
     }
+  };
+
+  const handleUpdateDevice = async (deviceType: 'mobile' | 'ios' | 'desktop' | 'web') => {
+    if (!selectedAccountId) return;
+    const res = await fetch(`/api/selfbot/accounts/${selectedAccountId}/device`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceType }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Không thể đổi loại thiết bị');
+    }
+    await fetchSessions();
+  };
+
+  const handlePureMobile = async () => {
+    if (!selectedAccountId) return;
+    const res = await fetch(`/api/selfbot/accounts/${selectedAccountId}/pure-mobile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Không thể bật chế độ treo điện thoại tinh khiết');
+    }
+    await fetchSessions();
   };
 
   const handleToggleConnect = async (id: string, isConnected: boolean) => {
@@ -525,6 +567,8 @@ export default function App() {
               <DiscordProfilePreview
                 account={currentAccount}
                 onUpdatePresence={handleUpdatePresence}
+                onUpdateDevice={handleUpdateDevice}
+                onPureMobile={handlePureMobile}
               />
             )}
 
@@ -545,6 +589,8 @@ export default function App() {
                   <DiscordProfilePreview
                     account={currentAccount}
                     onUpdatePresence={handleUpdatePresence}
+                    onUpdateDevice={handleUpdateDevice}
+                    onPureMobile={handlePureMobile}
                   />
                 )}
 
@@ -554,6 +600,8 @@ export default function App() {
                       account={currentAccount}
                       onUpdatePresence={handleUpdatePresence}
                       onUpdateRotatingStatus={handleUpdateRotatingStatus}
+                      onUpdateDevice={handleUpdateDevice}
+                      onPureMobile={handlePureMobile}
                     />
                   )}
 

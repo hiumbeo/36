@@ -9,7 +9,8 @@ import type {
   LogMessage,
   DiscordGuild,
   DiscordChannel,
-  RotatingStatusItem
+  RotatingStatusItem,
+  DeviceType
 } from '../src/types.js';
 
 interface ActiveClient {
@@ -83,12 +84,13 @@ export class DiscordManager {
 
     this.addLog('info', `[Tự Động Chạy] Phát hiện ${tokenList.length} token từ Environment Variables. Đang tự động kiểm tra và khởi chạy bot...`);
 
-    const customStatusText = process.env.DISCORD_CUSTOM_STATUS || 'Đang leo rank Valorant 🔥';
-    const customStatusEmoji = process.env.DISCORD_CUSTOM_EMOJI || '🎯';
-    const activityName = process.env.DISCORD_ACTIVITY_NAME || 'VALORANT';
+    const deviceType = ((process.env.DISCORD_DEVICE_TYPE as DeviceType) || 'mobile');
+    const customStatusText = process.env.DISCORD_CUSTOM_STATUS || '';
+    const customStatusEmoji = process.env.DISCORD_CUSTOM_EMOJI || '';
+    const activityName = process.env.DISCORD_ACTIVITY_NAME || '';
     const activityType = (process.env.DISCORD_ACTIVITY_TYPE ? parseInt(process.env.DISCORD_ACTIVITY_TYPE, 10) : 0) as ActivityType;
-    const streamUrl = process.env.DISCORD_STREAM_URL || 'https://twitch.tv/discord_live_stream';
-    const defaultStatus = (process.env.DISCORD_STATUS as DiscordStatus) || 'dnd';
+    const streamUrl = process.env.DISCORD_STREAM_URL || '';
+    const defaultStatus = (process.env.DISCORD_STATUS as DiscordStatus) || 'online';
     const guildId = process.env.DISCORD_GUILD_ID || '';
     const channelId = process.env.DISCORD_VOICE_CHANNEL_ID || '';
 
@@ -97,15 +99,16 @@ export class DiscordManager {
         const session = await this.registerAccount({
           token,
           prefix: process.env.DISCORD_PREFIX || '!',
+          deviceType,
           status: defaultStatus,
-          customStatus: { text: customStatusText, emojiName: customStatusEmoji },
-          activity: {
+          customStatus: customStatusText ? { text: customStatusText, emojiName: customStatusEmoji || '⚡' } : { text: '', emojiName: '' },
+          activity: activityName ? {
             name: activityName,
             type: activityType,
-            details: process.env.DISCORD_ACTIVITY_DETAILS || 'Competitive (Ascendant 3)',
-            state: process.env.DISCORD_ACTIVITY_STATE || 'In Match (Ascent - Score 11 - 9)',
+            details: process.env.DISCORD_ACTIVITY_DETAILS || '',
+            state: process.env.DISCORD_ACTIVITY_STATE || '',
             url: activityType === 1 ? streamUrl : undefined,
-          },
+          } : { name: '', type: 0 },
           voice: {
             guildId,
             channelId,
@@ -116,9 +119,9 @@ export class DiscordManager {
           },
         });
 
-        this.addLog('success', `[Tự Động Chạy] Đã tự lắp token và xác thực thành công tài khoản [${session.name}] (@${session.username})! Đang kết nối Gateway...`, session.id);
+        this.addLog('success', `[Tự Động Chạy] Đã xác thực [${session.name}] (@${session.username})! Đang kết nối Gateway (Chế độ thiết bị: ${deviceType.toUpperCase()} - Icon: 📱)...`, session.id);
         await this.connect(session.id);
-        this.addLog('success', `[Tự Động Chạy] Bot tài khoản [${session.name}] đã tự động kết nối và đang treo 24/7!`, session.id);
+        this.addLog('success', `[Tự Động Chạy] Bot [${session.name}] đã kết nối thành công và đang treo 24/7 trực tuyến liên tục (📱 Điện thoại)!`, session.id);
         result.started++;
       } catch (err: any) {
         const msg = `Không thể tự động khởi chạy token: ${err.message}`;
@@ -141,12 +144,13 @@ export class DiscordManager {
         ? `${rawToken.trim().slice(0, 8)}••••••••••••••••${rawToken.trim().slice(-6)}`
         : null,
       defaults: {
-        status: process.env.DISCORD_STATUS || 'dnd',
-        customStatus: process.env.DISCORD_CUSTOM_STATUS || 'Đang leo rank Valorant 🔥',
-        customEmoji: process.env.DISCORD_CUSTOM_EMOJI || '🎯',
-        activityName: process.env.DISCORD_ACTIVITY_NAME || 'VALORANT',
+        deviceType: (process.env.DISCORD_DEVICE_TYPE as DeviceType) || 'mobile',
+        status: process.env.DISCORD_STATUS || 'online',
+        customStatus: process.env.DISCORD_CUSTOM_STATUS || '',
+        customEmoji: process.env.DISCORD_CUSTOM_EMOJI || '',
+        activityName: process.env.DISCORD_ACTIVITY_NAME || '',
         activityType: process.env.DISCORD_ACTIVITY_TYPE ? parseInt(process.env.DISCORD_ACTIVITY_TYPE, 10) : 0,
-        streamUrl: process.env.DISCORD_STREAM_URL || 'https://twitch.tv/discord_live_stream',
+        streamUrl: process.env.DISCORD_STREAM_URL || '',
         guildId: process.env.DISCORD_GUILD_ID || '',
         channelId: process.env.DISCORD_VOICE_CHANNEL_ID || '',
       }
@@ -168,6 +172,7 @@ export class DiscordManager {
         discriminator: '1337',
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&h=128&fit=crop&crop=face',
         status: 'online',
+        deviceType: 'mobile',
         customStatus: { text: 'Treo 24/7 trên Render.com 🚀', emojiName: '💻' },
         activity: {
           name: 'Twitch',
@@ -428,14 +433,14 @@ export class DiscordManager {
         username: val.user.username,
         discriminator: val.user.discriminator,
         avatar: val.user.avatar,
-        status: accountData.status || 'dnd',
-        customStatus: accountData.customStatus || { text: 'Đang leo rank Valorant 🔥', emojiName: '🎯' },
-        activity: accountData.activity || {
-          name: 'VALORANT',
-          type: 0,
-          details: 'Competitive (Ascendant 3)',
-          state: 'In Match (Ascent - Score 11 - 9)',
-        },
+        deviceType: accountData.deviceType || 'mobile',
+        status: accountData.status || 'online',
+        customStatus: accountData.customStatus !== undefined 
+          ? accountData.customStatus 
+          : { text: '', emojiName: '' },
+        activity: accountData.activity !== undefined 
+          ? accountData.activity 
+          : { name: '', type: 0 },
         rotatingStatus: accountData.rotatingStatus || {
           enabled: false,
           intervalSeconds: 15,
@@ -484,7 +489,7 @@ export class DiscordManager {
       };
 
       this.clients.set(id, client);
-      this.addLog('info', `Đã thêm tài khoản [${val.user.username}] (${id}) vào hệ thống.`, id);
+      this.addLog('info', `Đã thêm tài khoản [${val.user.username}] (${id}) vào hệ thống. Chế độ thiết bị: [${session.deviceType?.toUpperCase() || 'MOBILE'}].`, id);
     } else {
       // Update existing
       client.session.token = cleanToken;
@@ -492,9 +497,10 @@ export class DiscordManager {
       client.session.username = val.user.username;
       client.session.discriminator = val.user.discriminator;
       client.session.avatar = val.user.avatar;
+      if (accountData.deviceType) client.session.deviceType = accountData.deviceType;
       if (accountData.status) client.session.status = accountData.status;
-      if (accountData.customStatus) client.session.customStatus = accountData.customStatus;
-      if (accountData.activity) client.session.activity = accountData.activity;
+      if (accountData.customStatus !== undefined) client.session.customStatus = accountData.customStatus;
+      if (accountData.activity !== undefined) client.session.activity = accountData.activity;
       if (accountData.voice) client.session.voice = accountData.voice;
       if (accountData.rotatingStatus) client.session.rotatingStatus = accountData.rotatingStatus;
     }
@@ -654,6 +660,73 @@ export class DiscordManager {
     if (client.ws && client.ws.readyState === WebSocket.OPEN) {
       this.sendPresencePayload(client);
       this.addLog('info', `Cập nhật trạng thái [${client.session.status}] và hoạt động cho [${client.session.name}].`, id);
+    }
+    return true;
+  }
+
+  /**
+   * Cập nhật loại thiết bị (Mobile Phone, iOS, PC, Web) và kích hoạt lại kết nối để cập nhật icon
+   */
+  public async updateDeviceType(id: string, deviceType: DeviceType): Promise<boolean> {
+    const client = this.clients.get(id);
+    if (!client) return false;
+    client.session.deviceType = deviceType;
+
+    const deviceLabels: Record<DeviceType, string> = {
+      mobile: '📱 Điện thoại (Discord Android)',
+      ios: '🍏 Điện thoại iPhone (Discord iOS)',
+      desktop: '💻 Máy tính (Discord PC / Desktop)',
+      web: '🌐 Trình duyệt Web (Chrome)',
+    };
+
+    this.addLog('info', `Đã chuyển loại thiết bị sang: ${deviceLabels[deviceType]}`, id);
+
+    if (id.startsWith('demo-')) {
+      return true;
+    }
+
+    // Nếu đang kết nối, cần re-identify để Discord nhận diện loại thiết bị mới
+    if (client.ws && client.ws.readyState === WebSocket.OPEN) {
+      this.addLog('ws', `Làm mới kết nối Gateway với thiết bị [${deviceLabels[deviceType]}] để Discord cập nhật icon biểu tượng...`, id);
+      client.sessionId = null; // Xoá sessionId để Gateway gửi IDENTIFY mới thay vì RESUME
+      client.lastSequence = null;
+      try {
+        client.ws.terminate();
+      } catch {}
+    }
+    return true;
+  }
+
+  /**
+   * Thiết lập chế độ Treo Điện Thoại Tinh Khiết 24/7 (Không status, không game, chỉ treo online điện thoại liên tục)
+   */
+  public setPureOnlineMobile(id: string): boolean {
+    const client = this.clients.get(id);
+    if (!client) return false;
+
+    client.session.deviceType = 'mobile';
+    client.session.status = 'online';
+    client.session.customStatus = { text: '', emojiName: '' };
+    client.session.activity = { name: '', type: 0, details: '', state: '' };
+
+    if (client.rotationInterval) {
+      clearInterval(client.rotationInterval);
+      client.rotationInterval = null;
+    }
+    client.session.rotatingStatus = { enabled: false, intervalSeconds: 15, items: [] };
+
+    this.addLog('success', `[Treo Điện Thoại 24/7] Đã bật chế độ Tinh Khiết: Trực tuyến liên tục với icon Điện Thoại (📱), không status và không game!`, id);
+
+    if (id.startsWith('demo-')) {
+      return true;
+    }
+
+    if (client.ws && client.ws.readyState === WebSocket.OPEN) {
+      client.sessionId = null;
+      client.lastSequence = null;
+      try {
+        client.ws.terminate();
+      } catch {}
     }
     return true;
   }
@@ -1259,27 +1332,83 @@ export class DiscordManager {
   private sendIdentify(client: ActiveClient) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) return;
     const id = client.session.id;
+    const deviceType = client.session.deviceType || 'mobile';
 
-    this.addLog('ws', `Gửi IDENTIFY đăng nhập Gateway cho ${client.session.name}...`, id);
+    const deviceLabels: Record<DeviceType, string> = {
+      mobile: '📱 Điện thoại (Discord Android)',
+      ios: '🍏 Điện thoại iPhone (Discord iOS)',
+      desktop: '💻 Máy tính (PC / Desktop)',
+      web: '🌐 Trình duyệt Web (Chrome)',
+    };
+
+    this.addLog('ws', `Gửi IDENTIFY đăng nhập Gateway cho ${client.session.name} [Thiết bị: ${deviceLabels[deviceType]}]...`, id);
+
+    let properties: any;
+    if (deviceType === 'mobile') {
+      // Chuẩn Discord Android Mobile: Hiện biểu tượng Cái Điện Thoại (📱) xanh lá trên Discord
+      properties = {
+        os: 'Android',
+        browser: 'Discord Android',
+        device: 'Discord Android',
+        $os: 'Android',
+        $browser: 'Discord Android',
+        $device: 'Discord Android',
+        system_locale: 'vi-VN',
+        client_version: '210.0',
+        release_channel: 'stable',
+      };
+    } else if (deviceType === 'ios') {
+      // Chuẩn Discord iOS iPhone: Hiện biểu tượng Cái Điện Thoại (🍏📱)
+      properties = {
+        os: 'iOS',
+        browser: 'Discord iOS',
+        device: 'iPhone',
+        $os: 'iOS',
+        $browser: 'Discord iOS',
+        $device: 'iPhone',
+        system_locale: 'vi-VN',
+        client_version: '210.0',
+        release_channel: 'stable',
+      };
+    } else if (deviceType === 'desktop') {
+      // Discord Desktop PC
+      properties = {
+        os: 'Windows',
+        browser: 'Discord Client',
+        device: '',
+        $os: 'Windows',
+        $browser: 'Discord Client',
+        $device: '',
+        system_locale: 'vi-VN',
+        client_build_number: 350000,
+        release_channel: 'stable',
+      };
+    } else {
+      // Web Browser
+      properties = {
+        os: 'Windows',
+        browser: 'Chrome',
+        device: '',
+        $os: 'Windows',
+        $browser: 'Chrome',
+        $device: '',
+        system_locale: 'vi-VN',
+        browser_user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        browser_version: '131.0.0.0',
+        os_version: '10',
+        release_channel: 'stable',
+        client_build_number: 350000,
+      };
+    }
 
     const identifyPayload = {
       op: 2,
       d: {
         token: client.session.token,
         capabilities: 30717,
-        properties: {
-          os: 'Windows',
-          browser: 'Chrome',
-          device: '',
-          system_locale: 'vi-VN',
-          browser_user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-          browser_version: '131.0.0.0',
-          os_version: '10',
-          release_channel: 'stable',
-          client_build_number: 350000,
-        },
+        properties,
         presence: {
-          status: client.session.status,
+          status: client.session.status || 'online',
           since: null,
           activities: this.buildActivities(client.session),
           afk: false,

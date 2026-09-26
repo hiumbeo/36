@@ -51,6 +51,8 @@ export interface RotatingStatusItem {
   status: DiscordStatus;
 }
 
+export type DeviceType = 'mobile' | 'ios' | 'desktop' | 'web';
+
 export interface AccountSession {
   id: string;
   token: string;
@@ -59,6 +61,7 @@ export interface AccountSession {
   discriminator: string;
   avatar: string | null;
   status: DiscordStatus;
+  deviceType?: DeviceType;
   customStatus?: CustomStatusConfig;
   activity?: ActivityConfig;
   prefix?: string;

@@ -58,20 +58,16 @@ async function startServer() {
   // Trigger auto-start from ENV or direct token payload
   app.post('/api/selfbot/auto-run', async (req, res) => {
     try {
-      const { token, autoConnect = true, voice, customStatus, activity, status, prefix } = req.body;
+      const { token, autoConnect = true, voice, customStatus, activity, status, prefix, deviceType } = req.body;
       if (token) {
-        // Run with provided token
+        // Run with provided token - default to pure mobile 24/7 online
         const session = await discordManager.registerAccount({
           token,
           prefix: prefix || process.env.DISCORD_PREFIX || '!',
-          status: status || 'dnd',
-          customStatus: customStatus || { text: 'Đang leo rank Valorant 🔥', emojiName: '🎯' },
-          activity: activity || {
-            name: 'VALORANT',
-            type: 0,
-            details: 'Competitive (Ascendant 3)',
-            state: 'In Match (Ascent - Score 11 - 9)',
-          },
+          deviceType: deviceType || 'mobile',
+          status: status || 'online',
+          customStatus: customStatus !== undefined ? customStatus : { text: '', emojiName: '' },
+          activity: activity !== undefined ? activity : { name: '', type: 0 },
           voice: voice || {
             guildId: '',
             channelId: '',
@@ -120,13 +116,14 @@ async function startServer() {
   // Register or update an account
   app.post('/api/selfbot/register', async (req, res) => {
     try {
-      const { token, status, customStatus, activity, voice, rotatingStatus } = req.body;
+      const { token, status, deviceType, customStatus, activity, voice, rotatingStatus } = req.body;
       if (!token) {
         return res.status(400).json({ error: 'Token không được để trống' });
       }
       const session = await discordManager.registerAccount({
         token,
         status,
+        deviceType,
         customStatus,
         activity,
         voice,
@@ -168,6 +165,29 @@ async function startServer() {
     const { id } = req.params;
     const success = discordManager.forceReconnect(id);
     res.json({ success });
+  });
+
+  // Update Device Type (Mobile Phone / iOS / Desktop / Web)
+  app.post('/api/selfbot/accounts/:id/device', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { deviceType } = req.body;
+      const success = await discordManager.updateDeviceType(id, deviceType);
+      res.json({ success, deviceType });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Set Pure Online Mobile (Treo Điện Thoại Tinh Khiết 24/7 không status, không game)
+  app.post('/api/selfbot/accounts/:id/pure-mobile', (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = discordManager.setPureOnlineMobile(id);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   });
 
   // Update Presence (Status & Activity)
