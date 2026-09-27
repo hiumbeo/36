@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { discordManager } from './server/discord-manager.js';
 
@@ -371,7 +372,15 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const cwdDist = path.join(process.cwd(), 'dist');
+    const localDist = path.join(__dirname, '..', 'dist');
+    const hereDist = __dirname;
+    const distPath = fs.existsSync(path.join(cwdDist, 'index.html'))
+      ? cwdDist
+      : fs.existsSync(path.join(localDist, 'index.html'))
+      ? localDist
+      : hereDist;
+
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
