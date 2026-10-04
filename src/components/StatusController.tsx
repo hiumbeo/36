@@ -21,9 +21,10 @@ import {
   Zap,
   CheckCircle2,
   Image as ImageIcon,
-  Layers
+  Layers,
+  Timer
 } from 'lucide-react';
-import type { AccountSession, DiscordStatus, ActivityType, RotatingStatusItem, DeviceType } from '../types.js';
+import type { AccountSession, DiscordStatus, ActivityType, RotatingStatusItem, DeviceType, RpcTimeMode } from '../types.js';
 import { getActivityTypeLabel } from '../utils/format.js';
 
 interface Props {
@@ -101,6 +102,11 @@ export const StatusController: React.FC<Props> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // RPC Timestamps Settings
+  const [timeMode, setTimeMode] = useState<RpcTimeMode>(account.activity?.timestamps?.mode || 'now');
+  const [elapsedMinutes, setElapsedMinutes] = useState<number>(account.activity?.timestamps?.customElapsedMinutes || 30);
+  const [remainingMinutes, setRemainingMinutes] = useState<number>(account.activity?.timestamps?.remainingMinutes || 15);
+
   // Sync state when selected account changes
   useEffect(() => {
     setDeviceType(account.deviceType || 'mobile');
@@ -121,6 +127,15 @@ export const StatusController: React.FC<Props> = ({
     setRotationInterval(account.rotatingStatus?.intervalSeconds || 15);
     if (account.rotatingStatus?.items && account.rotatingStatus.items.length > 0) {
       setRotationItems(account.rotatingStatus.items);
+    }
+    if (account.activity?.timestamps?.mode) {
+      setTimeMode(account.activity.timestamps.mode);
+      if (account.activity.timestamps.customElapsedMinutes) {
+        setElapsedMinutes(account.activity.timestamps.customElapsedMinutes);
+      }
+      if (account.activity.timestamps.remainingMinutes) {
+        setRemainingMinutes(account.activity.timestamps.remainingMinutes);
+      }
     }
   }, [account.id, account.deviceType, account.activity]);
 
@@ -153,6 +168,7 @@ export const StatusController: React.FC<Props> = ({
     setSmallText('');
     setApplicationId('');
     setRotationEnabled(false);
+    setTimeMode('now');
 
     if (onPureMobile) {
       setIsSaving(true);
@@ -173,6 +189,29 @@ export const StatusController: React.FC<Props> = ({
   const handleApplyPresence = async () => {
     setIsSaving(true);
     try {
+      let timestampsConfig: any = undefined;
+      if (timeMode === 'off') {
+        timestampsConfig = { mode: 'off' };
+      } else if (timeMode === 'now') {
+        timestampsConfig = { mode: 'now', start: Date.now() };
+      } else if (timeMode === 'uptime') {
+        timestampsConfig = { mode: 'uptime', start: account.uptimeStart || Date.now() };
+      } else if (timeMode === 'custom_elapsed') {
+        const mins = Math.max(1, Number(elapsedMinutes) || 30);
+        timestampsConfig = {
+          mode: 'custom_elapsed',
+          customElapsedMinutes: mins,
+          start: Date.now() - mins * 60000,
+        };
+      } else if (timeMode === 'remaining') {
+        const mins = Math.max(1, Number(remainingMinutes) || 15);
+        timestampsConfig = {
+          mode: 'remaining',
+          remainingMinutes: mins,
+          end: Date.now() + mins * 60000,
+        };
+      }
+
       await onUpdatePresence(
         status,
         {
@@ -182,6 +221,7 @@ export const StatusController: React.FC<Props> = ({
           state: activityState,
           url: activityType === 1 ? streamingUrl : undefined,
           application_id: applicationId.trim() || undefined,
+          timestamps: timestampsConfig,
           assets: (largeImage.trim() || smallImage.trim()) ? {
             large_image: largeImage.trim() || undefined,
             large_text: largeText.trim() || undefined,
@@ -864,14 +904,113 @@ export const StatusController: React.FC<Props> = ({
                   </div>
                 </div>
               </div>
+
+              {/* CÀI ĐẶT BỘ ĐẾM THỜI GIAN RPC (RPC TIMESTAMPS) */}
+              <div className="pt-3 border-t border-slate-800/80 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-amber-400" />
+                    Cài Đặt Bộ Đếm Thời Gian RPC (RPC Timestamps)
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    Hiển thị dòng "01:23:45 đã trôi qua" hoặc "Còn lại 15:00"
+                  </span>
+                </div>
+
+                {/* Time mode selector */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {[
+                    { id: 'now', label: 'Bắt đầu lúc này', desc: '00:00:00 (Reset)', icon: Timer },
+                    { id: 'uptime', label: 'Theo Uptime bot', desc: 'Từ lúc bot online', icon: Clock },
+                    { id: 'custom_elapsed', label: 'Đã chơi trước đó', desc: 'Nhập số phút', icon: Clock },
+                    { id: 'remaining', label: 'Đếm ngược (Còn lại)', desc: 'Ending in...', icon: Timer },
+                    { id: 'off', label: 'Tắt đếm giờ', desc: 'Không hiện timer', icon: Layers },
+                  ].map((item) => {
+                    const isCurrent = timeMode === item.id;
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setTimeMode(item.id as RpcTimeMode)}
+                        className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                          isCurrent
+                            ? 'bg-amber-500/15 border-amber-500 text-amber-200 ring-1 ring-amber-500/30'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <Icon className="w-3.5 h-3.5" />
+                          {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+                        </div>
+                        <span className="text-xs font-semibold leading-tight">{item.label}</span>
+                        <span className="text-[10px] text-slate-500">{item.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Input for custom elapsed minutes */}
+                {timeMode === 'custom_elapsed' && (
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+                    <div className="text-xs text-slate-300">
+                      <span className="font-semibold text-amber-300">Giả lập đã chơi từ trước:</span>
+                      <p className="text-[11px] text-slate-400">Ví dụ: 45 phút trước, 120 phút trước</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={1}
+                        max={10000}
+                        value={elapsedMinutes}
+                        onChange={(e) => setElapsedMinutes(Math.max(1, Number(e.target.value)))}
+                        className="w-24 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-mono text-amber-300 text-right"
+                      />
+                      <span className="text-xs text-slate-400">phút trước</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Input for remaining minutes (countdown) */}
+                {timeMode === 'remaining' && (
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+                    <div className="text-xs text-slate-300">
+                      <span className="font-semibold text-amber-300">Thời gian còn lại (Đếm ngược):</span>
+                      <p className="text-[11px] text-slate-400">Ví dụ: còn 15 phút, còn 3 phút bài hát</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={1}
+                        max={10000}
+                        value={remainingMinutes}
+                        onChange={(e) => setRemainingMinutes(Math.max(1, Number(e.target.value)))}
+                        className="w-24 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-mono text-amber-300 text-right"
+                      />
+                      <span className="text-xs text-slate-400">phút nữa</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Action Button */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <div className="text-xs text-slate-400 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-indigo-400" />
-              Tự động gắn bộ đếm thời gian (Elapsed Timer) trên Discord profile
+              <span>Bộ đếm: </span>
+              <strong className="text-slate-200">
+                {timeMode === 'off'
+                  ? 'Đã tắt timer'
+                  : timeMode === 'now'
+                  ? 'Bắt đầu từ 00:00:00'
+                  : timeMode === 'uptime'
+                  ? 'Theo Uptime bot'
+                  : timeMode === 'custom_elapsed'
+                  ? `Đã chơi ${elapsedMinutes} phút trước`
+                  : `Đếm ngược ${remainingMinutes} phút`}
+              </strong>
             </div>
 
             <button

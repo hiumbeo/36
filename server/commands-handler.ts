@@ -341,6 +341,177 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       return true;
     }
 
+    // Cài đặt thời gian RPC (Bắt đầu từ 00:00, Giả lập đã chơi X phút, Đếm ngược, hoặc Tắt)
+    case 'rpctime':
+    case 'setrpctime':
+    case 'settime': {
+      const mode = (args[0] || '').toLowerCase();
+      const currentAct = client.session.activity || { name: 'Discord Selfbot', type: 0 };
+
+      if (mode === 'now' || mode === 'reset') {
+        const now = Date.now();
+        const updatedAct = {
+          ...currentAct,
+          timestamps: {
+            mode: 'now' as const,
+            start: now,
+          },
+        };
+        manager.updatePresence(client.session.id, client.session.status, updatedAct);
+        await sendOrEdit(msg.channel_id, msg.id, `⏱️ **ĐÃ ĐẶT THỜI GIAN RPC:** Bắt đầu tính từ **00:00** ngay lúc này!`);
+        return true;
+      }
+
+      if (mode === 'uptime') {
+        const updatedAct = {
+          ...currentAct,
+          timestamps: {
+            mode: 'uptime' as const,
+            start: client.session.uptimeStart || Date.now(),
+          },
+        };
+        manager.updatePresence(client.session.id, client.session.status, updatedAct);
+        await sendOrEdit(msg.channel_id, msg.id, `⏱️ **ĐÃ ĐẶT THỜI GIAN RPC:** Đồng bộ theo thời gian **Uptime** bot đang treo 24/7!`);
+        return true;
+      }
+
+      if (mode === 'elapsed' || mode === 'truoc') {
+        const mins = parseInt(args[1], 10);
+        if (isNaN(mins) || mins <= 0) {
+          await sendOrEdit(msg.channel_id, msg.id, `⚠️ Vui lòng nhập số phút. Ví dụ: \`${p}rpctime elapsed 45\` (giả lập đã chơi 45 phút trước).`);
+          return true;
+        }
+        const startTime = Date.now() - mins * 60000;
+        const updatedAct = {
+          ...currentAct,
+          timestamps: {
+            mode: 'custom_elapsed' as const,
+            start: startTime,
+            customElapsedMinutes: mins,
+          },
+        };
+        manager.updatePresence(client.session.id, client.session.status, updatedAct);
+        await sendOrEdit(msg.channel_id, msg.id, `⏱️ **ĐÃ ĐẶT THỜI GIAN RPC:** Giả lập đã chơi từ **${mins} phút trước** (Hiển thị: *${Math.floor(mins / 60)}h ${mins % 60}m elapsed*).`);
+        return true;
+      }
+
+      if (mode === 'left' || mode === 'remaining' || mode === 'conlai') {
+        const mins = parseInt(args[1], 10);
+        if (isNaN(mins) || mins <= 0) {
+          await sendOrEdit(msg.channel_id, msg.id, `⚠️ Vui lòng nhập số phút đếm ngược. Ví dụ: \`${p}rpctime left 15\` (đếm ngược còn 15 phút).`);
+          return true;
+        }
+        const endTime = Date.now() + mins * 60000;
+        const updatedAct = {
+          ...currentAct,
+          timestamps: {
+            mode: 'remaining' as const,
+            end: endTime,
+            remainingMinutes: mins,
+          },
+        };
+        manager.updatePresence(client.session.id, client.session.status, updatedAct);
+        await sendOrEdit(msg.channel_id, msg.id, `⏳ **ĐÃ ĐẶT ĐẾM NGƯỢC RPC:** Sẽ kết thúc sau **${mins} phút nữa** (Hiển thị đếm ngược *${mins}:00 left*).`);
+        return true;
+      }
+
+      if (mode === 'off' || mode === 'tat' || mode === 'hide') {
+        const updatedAct = {
+          ...currentAct,
+          timestamps: {
+            mode: 'off' as const,
+          },
+        };
+        manager.updatePresence(client.session.id, client.session.status, updatedAct);
+        await sendOrEdit(msg.channel_id, msg.id, `🚫 **ĐÃ TẮT THỜI GIAN RPC:** Hồ sơ Discord sẽ không còn hiển thị dòng đếm giờ.`);
+        return true;
+      }
+
+      // Help text
+      const helpMsg = [
+        `⏱️ **CÁCH CÀI ĐẶT THỜI GIAN RPC (RICH PRESENCE TIMESTAMPS):**`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `• \`${p}rpctime now\` : Reset thời gian về 00:00 bắt đầu từ lúc này`,
+        `• \`${p}rpctime uptime\` : Đếm theo thời gian bot online 24/7`,
+        `• \`${p}rpctime elapsed <phút>\` : Giả lập đã chơi X phút trước (vd: \`${p}rpctime elapsed 60\`)`,
+        `• \`${p}rpctime left <phút>\` : Đếm ngược còn lại X phút (vd: \`${p}rpctime left 25\`)`,
+        `• \`${p}rpctime off\` : Tắt hoàn toàn dòng hiển thị thời gian`,
+      ].join('\n');
+      await sendOrEdit(msg.channel_id, msg.id, helpMsg);
+      return true;
+    }
+
+    // Thêm hoặc thay đổi ảnh trong Rich Presence
+    case 'rpcimg':
+    case 'rpcimage':
+    case 'setrpcimg': {
+      if (args.length < 1) {
+        await sendOrEdit(msg.channel_id, msg.id, `❌ Cú pháp: \`${p}rpcimg <URL_Ảnh_Lớn> [URL_Ảnh_Nhỏ]\`\nVí dụ: \`${p}rpcimg https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg\``);
+        return true;
+      }
+      const largeImg = args[0];
+      const smallImg = args[1] || undefined;
+      const currentAct = client.session.activity || { name: 'Discord Gaming', type: 0 };
+
+      const updatedAct = {
+        ...currentAct,
+        assets: {
+          ...currentAct.assets,
+          large_image: largeImg,
+          large_text: currentAct.assets?.large_text || currentAct.name,
+          small_image: smallImg || currentAct.assets?.small_image,
+          small_text: smallImg ? (currentAct.assets?.small_text || 'Badge') : currentAct.assets?.small_text,
+        },
+      };
+      manager.updatePresence(client.session.id, client.session.status, updatedAct);
+      await sendOrEdit(msg.channel_id, msg.id, `🖼️ **ĐÃ THÊM ẢNH VÀO RPC THÀNH CÔNG!**\n• Ảnh lớn: <${largeImg}>${smallImg ? `\n• Ảnh nhỏ: <${smallImg}>` : ''}`);
+      return true;
+    }
+
+    // Lệnh cài đặt Full RPC chuyên nghiệp (Tên | Details | State | Ảnh lớn | Ảnh nhỏ)
+    case 'setrpc':
+    case 'customrpc': {
+      if (!argsString) {
+        const guide = [
+          `🎮 **CÁCH TẠO RICH PRESENCE FULL KÈM ẢNH & THỜI GIAN:**`,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          `Cú pháp phân cách bằng dấu gạch đứng \`|\`:`,
+          `\`${p}setrpc <Tên Game> | <Chi Tiết> | <Trạng Thái> | <URL Ảnh Bìa> | [URL Ảnh Nhỏ]\``,
+          `Ví dụ:`,
+          `\`${p}setrpc Black Myth: Wukong | Chapter 4: The Spider Cave | Solo Boss Fight | https://cdn.cloudflare.steamstatic.com/steam/apps/2358720/header.jpg\``,
+        ].join('\n');
+        await sendOrEdit(msg.channel_id, msg.id, guide);
+        return true;
+      }
+
+      const parts = argsString.split('|').map(s => s.trim());
+      const name = parts[0] || 'Game Custom';
+      const details = parts[1] || '';
+      const state = parts[2] || '';
+      const large_image = parts[3] || '';
+      const small_image = parts[4] || '';
+
+      manager.updatePresence(client.session.id, client.session.status, {
+        name,
+        type: 0,
+        details: details || undefined,
+        state: state || undefined,
+        timestamps: {
+          mode: 'now',
+          start: Date.now(),
+        },
+        assets: large_image ? {
+          large_image,
+          large_text: name,
+          small_image: small_image || undefined,
+          small_text: small_image ? 'Verified' : undefined,
+        } : undefined,
+      });
+
+      await sendOrEdit(msg.channel_id, msg.id, `✅ **ĐÃ KÍCH HOẠT RICH PRESENCE CUSTOM KÈM ẢNH!**\n🎮 Tên: **${name}**\n📝 Chi tiết: *${details || 'Không'}*\n📊 Trạng thái: *${state || 'Không'}*${large_image ? `\n🖼️ Ảnh bìa: <${large_image}>` : ''}`);
+      return true;
+    }
+
     case 'fifa':
     case 'fc24': {
       manager.updatePresence(client.session.id, 'online', {

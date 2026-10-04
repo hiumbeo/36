@@ -8,6 +8,8 @@ export type ActivityType =
   | 4 // Custom (handled separately in Discord)
   | 5; // Competing
 
+export type RpcTimeMode = 'uptime' | 'now' | 'custom_elapsed' | 'remaining' | 'off';
+
 export interface ActivityConfig {
   name: string;
   type: ActivityType;
@@ -17,6 +19,10 @@ export interface ActivityConfig {
   application_id?: string;
   timestamps?: {
     start?: number;
+    end?: number;
+    mode?: RpcTimeMode;
+    customElapsedMinutes?: number;
+    remainingMinutes?: number;
   };
   assets?: {
     large_image?: string;

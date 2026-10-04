@@ -1522,7 +1522,31 @@ export class DiscordManager {
         actObj.state = act.state;
       }
 
-      if (session.uptimeStart) {
+      // Timestamps handling (Elapsed time vs Remaining time vs Off vs Uptime)
+      if (act.timestamps) {
+        const mode = act.timestamps.mode;
+        if (mode === 'off') {
+          // Explicitly disabled timestamps: do not add timestamps field
+        } else if (mode === 'now') {
+          actObj.timestamps = {
+            start: act.timestamps.start || Date.now(),
+          };
+        } else if (mode === 'custom_elapsed') {
+          const start = act.timestamps.start || (Date.now() - (act.timestamps.customElapsedMinutes || 30) * 60000);
+          actObj.timestamps = { start: Math.floor(start) };
+        } else if (mode === 'remaining') {
+          const end = act.timestamps.end || (Date.now() + (act.timestamps.remainingMinutes || 15) * 60000);
+          actObj.timestamps = { end: Math.floor(end) };
+        } else if (act.timestamps.start || act.timestamps.end) {
+          actObj.timestamps = {};
+          if (act.timestamps.start) actObj.timestamps.start = Math.floor(act.timestamps.start);
+          if (act.timestamps.end) actObj.timestamps.end = Math.floor(act.timestamps.end);
+        } else if (session.uptimeStart) {
+          actObj.timestamps = {
+            start: session.uptimeStart,
+          };
+        }
+      } else if (session.uptimeStart) {
         actObj.timestamps = {
           start: session.uptimeStart,
         };

@@ -20,6 +20,7 @@ import {
   Smile
 } from 'lucide-react';
 import type { AccountSession, DiscordStatus, ActivityConfig } from '../types.js';
+import { formatDuration } from '../utils/format.js';
 
 interface Props {
   account?: AccountSession;
@@ -491,9 +492,17 @@ export const DiscordProfilePreview: React.FC<Props> = ({
                           {activity.state}
                         </p>
                       )}
-                      <p className="text-[10px] text-indigo-400 font-mono pt-0.5">
-                        Đã chơi: {simulatedTime}
-                      </p>
+                      {activity.timestamps?.mode !== 'off' && (
+                        <p className="text-[10px] text-indigo-400 font-mono pt-0.5">
+                          {activity.timestamps?.end ? (
+                            `Còn lại: ${String(Math.max(0, Math.floor((activity.timestamps.end - Date.now()) / 60000))).padStart(2, '0')}:${String(Math.max(0, Math.floor(((activity.timestamps.end - Date.now()) % 60000) / 1000))).padStart(2, '0')} (Remaining)`
+                          ) : activity.timestamps?.start ? (
+                            `Đã trôi qua: ${formatDuration(activity.timestamps.start)}`
+                          ) : (
+                            `Đã chơi: ${simulatedTime}`
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
