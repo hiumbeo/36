@@ -9,6 +9,8 @@
  * 6. Toán Học & Công Cụ Hữu Ích
  */
 
+import type { RotatingStatusItem } from '../src/types.js';
+
 export interface CommandContext {
   client: any;
   msg: any;
@@ -512,6 +514,118 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       return true;
     }
 
+    // VS Code Python Rotating Status Command
+    case 'vscode':
+    case 'vsc':
+    case 'python': {
+      const intervalMins = parseInt(args[0], 10) || 2; // mặc định 2 phút đổi 1 file
+      const intervalSec = Math.max(10, intervalMins * 60);
+
+      const pythonImg = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10';
+      const vscBadge = 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png';
+
+      const defaultPythonFiles: RotatingStatusItem[] = [
+        {
+          id: 'vsc-1',
+          text: 'Đang code toolchui.py 🐍',
+          emojiName: '🐍',
+          activityName: 'Visual Studio Code',
+          activityType: 0,
+          status: 'online',
+          details: 'Editing toolchui.py',
+          state: 'Workspace: Python Tools (Line 214)',
+          largeImage: pythonImg,
+          largeText: 'Python 3.12 (Virtual Environment)',
+          smallImage: vscBadge,
+          smallText: 'Visual Studio Code',
+        },
+        {
+          id: 'vsc-2',
+          text: 'Dev Discord Bot 24/7 💻',
+          emojiName: '💻',
+          activityName: 'Visual Studio Code',
+          activityType: 0,
+          status: 'online',
+          details: 'Editing bot_discord.py',
+          state: 'Workspace: Selfbot Gateway (Line 88)',
+          largeImage: pythonImg,
+          largeText: 'Python 3.12 (Virtual Environment)',
+          smallImage: vscBadge,
+          smallText: 'Visual Studio Code',
+        },
+        {
+          id: 'vsc-3',
+          text: 'Fixing auto_react.py ⚡',
+          emojiName: '⚡',
+          activityName: 'Visual Studio Code',
+          activityType: 0,
+          status: 'idle',
+          details: 'Editing auto_react.py',
+          state: 'Workspace: Automation (Line 56)',
+          largeImage: pythonImg,
+          largeText: 'Python 3.12 (Virtual Environment)',
+          smallImage: vscBadge,
+          smallText: 'Visual Studio Code',
+        },
+        {
+          id: 'vsc-4',
+          text: 'Tối ưu spam_tool.py 🔥',
+          emojiName: '🔥',
+          activityName: 'Visual Studio Code',
+          activityType: 0,
+          status: 'dnd',
+          details: 'Editing spam_tool.py',
+          state: 'Workspace: Auto Tools (Line 210)',
+          largeImage: pythonImg,
+          largeText: 'Python 3.12 (Virtual Environment)',
+          smallImage: vscBadge,
+          smallText: 'Visual Studio Code',
+        },
+        {
+          id: 'vsc-5',
+          text: 'Chạy main.py 🐍',
+          emojiName: '🐍',
+          activityName: 'Visual Studio Code',
+          activityType: 0,
+          status: 'online',
+          details: 'Editing main.py',
+          state: 'Workspace: Core Scripts (Line 12)',
+          largeImage: pythonImg,
+          largeText: 'Python 3.12 (Virtual Environment)',
+          smallImage: vscBadge,
+          smallText: 'Visual Studio Code',
+        },
+      ];
+
+      // Đảm bảo thiết bị là PC Desktop
+      manager.updateDeviceType(client.session.id, 'desktop');
+
+      // Kích hoạt ngay Rotating Status
+      manager.setRotatingStatus(client.session.id, {
+        enabled: true,
+        intervalSeconds: intervalSec,
+        items: defaultPythonFiles,
+      });
+
+      await sendOrEdit(
+        msg.channel_id,
+        msg.id,
+        `💻 **ĐÃ KÍCH HOẠT VS CODE PYTHON MULTI-STATUS!**\n• Ảnh hoạt động: Python Artwork Logo\n• Chu kỳ đổi file: Sau mỗi **${intervalMins} phút**\n• Các file luân phiên: \`toolchui.py\` ➔ \`bot_discord.py\` ➔ \`auto_react.py\` ➔ \`spam_tool.py\` ➔ \`main.py\`\n• Thiết bị: 💻 Máy tính PC (Không bao giờ hiện điện thoại)`
+      );
+      return true;
+    }
+
+    case 'vscodestop':
+    case 'stopvsc': {
+      manager.setRotatingStatus(client.session.id, {
+        enabled: false,
+        intervalSeconds: 120,
+        items: client.session.rotatingStatus?.items || [],
+      });
+      await sendOrEdit(msg.channel_id, msg.id, `⏹️ Đã dừng chế độ tự đổi file VS Code Python.`);
+      return true;
+    }
+
     case 'fifa':
     case 'fc24': {
       manager.updatePresence(client.session.id, 'online', {
@@ -746,8 +860,7 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       return true;
     }
 
-    case 'code':
-    case 'vscode': {
+    case 'code': {
       const prj = argsString || 'Discord Selfbot Gateway 24/7 (Node.js/TypeScript)';
       manager.updatePresence(client.session.id, 'dnd', {
         name: 'Visual Studio Code',

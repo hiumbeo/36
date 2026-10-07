@@ -52,9 +52,16 @@ export interface VoiceConfig {
 export interface RotatingStatusItem {
   id: string;
   text: string;
+  emojiName?: string;
   activityName: string;
   activityType: ActivityType;
   status: DiscordStatus;
+  details?: string;
+  state?: string;
+  largeImage?: string;
+  largeText?: string;
+  smallImage?: string;
+  smallText?: string;
 }
 
 export type DeviceType = 'mobile' | 'ios' | 'desktop' | 'web';

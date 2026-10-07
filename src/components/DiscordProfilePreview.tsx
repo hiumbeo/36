@@ -181,16 +181,33 @@ export const DiscordProfilePreview: React.FC<Props> = ({
           <button
             type="button"
             onClick={async () => {
-              if (onPureMobile) {
-                await onPureMobile();
-              } else if (onUpdatePresence) {
-                await onUpdatePresence('online', { name: '', type: 0 }, { text: '' });
+              if (onUpdatePresence) {
+                await onUpdatePresence(
+                  'online',
+                  {
+                    name: 'Visual Studio Code',
+                    type: 0,
+                    details: 'Editing toolchui.py',
+                    state: 'Workspace: Python Tools (Line 214)',
+                    application_id: '383226320970055681',
+                    assets: {
+                      large_image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10',
+                      large_text: 'Python 3.12 (Virtual Environment)',
+                      small_image: 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png',
+                      small_text: 'Visual Studio Code',
+                    },
+                  },
+                  { text: 'Đang code toolchui.py 🐍', emojiName: '🐍' }
+                );
+              }
+              if (onUpdateDevice) {
+                await onUpdateDevice('desktop');
               }
             }}
-            title="Kích hoạt Treo Điện Thoại Tinh Khiết 24/7 (Không status, không game, icon điện thoại)"
-            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1 cursor-pointer shadow-sm"
+            title="Kích hoạt trạng thái VS Code Python với toolchui.py và logo Python"
+            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 transition flex items-center gap-1 cursor-pointer shadow-sm"
           >
-            <span>📱 Treo Phone (Pure)</span>
+            <span>🐍 VS Code Python</span>
           </button>
 
           <button

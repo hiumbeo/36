@@ -170,6 +170,22 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
     example: `${p}scstop`,
   },
   {
+    name: 'vscode',
+    syntax: `${p}vscode [số_phút]`,
+    desc: 'Kích hoạt VS Code Python Multi-Status: Tự động đổi qua lại các file Python (toolchui.py, bot_discord.py,...) kèm ảnh hoạt động Python và cố định icon PC Desktop.',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}vscode 2`,
+  },
+  {
+    name: 'vscodestop',
+    syntax: `${p}vscodestop`,
+    desc: 'Dừng chế độ tự động đổi file VS Code Python.',
+    category: 'games',
+    categoryLabel: '🎮 Gaming & Trạng Thái',
+    example: `${p}vscodestop`,
+  },
+  {
     name: 'rpctime',
     syntax: `${p}rpctime <now|uptime|elapsed <phút>|left <phút>|off>`,
     desc: 'Cài đặt bộ đếm thời gian RPC (đếm từ 00:00, đếm theo Uptime, giả lập đã chơi X phút, đếm ngược còn lại X phút, hoặc tắt).',

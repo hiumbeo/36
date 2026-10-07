@@ -22,7 +22,9 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   Layers,
-  Timer
+  Timer,
+  Code2,
+  FileCode
 } from 'lucide-react';
 import type { AccountSession, DiscordStatus, ActivityType, RotatingStatusItem, DeviceType, RpcTimeMode } from '../types.js';
 import { getActivityTypeLabel } from '../utils/format.js';
@@ -50,8 +52,161 @@ export const StatusController: React.FC<Props> = ({
   onUpdateDevice,
   onPureMobile,
 }) => {
-  const [activeTab, setActiveTab] = useState<'presence' | 'rotating'>('presence');
-  const [deviceType, setDeviceType] = useState<DeviceType>(account.deviceType || 'mobile');
+  const [activeTab, setActiveTab] = useState<'vscode' | 'presence' | 'rotating'>('vscode');
+  const [deviceType, setDeviceType] = useState<DeviceType>(account.deviceType || 'desktop');
+
+  // VS Code Python Multi-Status State
+  const [pythonImage, setPythonImage] = useState(
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10'
+  );
+  const [pythonIntervalMinutes, setPythonIntervalMinutes] = useState(2);
+  const [pythonFiles, setPythonFiles] = useState<RotatingStatusItem[]>([
+    {
+      id: 'py-1',
+      text: 'Đang code toolchui.py 🐍',
+      emojiName: '🐍',
+      activityName: 'Visual Studio Code',
+      activityType: 0,
+      status: 'online',
+      details: 'Editing toolchui.py',
+      state: 'Workspace: Python Tools (Line 214)',
+      largeImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10',
+      largeText: 'Python 3.12 (Virtual Environment)',
+      smallImage: 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png',
+      smallText: 'Visual Studio Code',
+    },
+    {
+      id: 'py-2',
+      text: 'Dev Discord Bot 24/7 💻',
+      emojiName: '💻',
+      activityName: 'Visual Studio Code',
+      activityType: 0,
+      status: 'online',
+      details: 'Editing bot_discord.py',
+      state: 'Workspace: Selfbot Gateway (Line 88)',
+      largeImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10',
+      largeText: 'Python 3.12 (Virtual Environment)',
+      smallImage: 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png',
+      smallText: 'Visual Studio Code',
+    },
+    {
+      id: 'py-3',
+      text: 'Fixing auto_react.py ⚡',
+      emojiName: '⚡',
+      activityName: 'Visual Studio Code',
+      activityType: 0,
+      status: 'idle',
+      details: 'Editing auto_react.py',
+      state: 'Workspace: Automation (Line 56)',
+      largeImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10',
+      largeText: 'Python 3.12 (Virtual Environment)',
+      smallImage: 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png',
+      smallText: 'Visual Studio Code',
+    },
+    {
+      id: 'py-4',
+      text: 'Tối ưu spam_tool.py 🔥',
+      emojiName: '🔥',
+      activityName: 'Visual Studio Code',
+      activityType: 0,
+      status: 'dnd',
+      details: 'Editing spam_tool.py',
+      state: 'Workspace: Auto Tools (Line 210)',
+      largeImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10',
+      largeText: 'Python 3.12 (Virtual Environment)',
+      smallImage: 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png',
+      smallText: 'Visual Studio Code',
+    },
+    {
+      id: 'py-5',
+      text: 'Chạy main.py 🐍',
+      emojiName: '🐍',
+      activityName: 'Visual Studio Code',
+      activityType: 0,
+      status: 'online',
+      details: 'Editing main.py',
+      state: 'Workspace: Core Scripts (Line 12)',
+      largeImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10',
+      largeText: 'Python 3.12 (Virtual Environment)',
+      smallImage: 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png',
+      smallText: 'Visual Studio Code',
+    },
+  ]);
+
+  const addPythonFile = () => {
+    const num = pythonFiles.length + 1;
+    const newName = `tool_${num}.py`;
+    const newItem: RotatingStatusItem = {
+      id: 'py-' + Math.random().toString(36).substring(2, 9),
+      text: `Đang code ${newName} 🐍`,
+      emojiName: '🐍',
+      activityName: 'Visual Studio Code',
+      activityType: 0,
+      status: 'online',
+      details: `Editing ${newName}`,
+      state: `Workspace: Python Projects (Line ${Math.floor(Math.random() * 200) + 20})`,
+      largeImage: pythonImage,
+      largeText: 'Python 3.12 (Virtual Environment)',
+      smallImage: 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png',
+      smallText: 'Visual Studio Code',
+    };
+    setPythonFiles([...pythonFiles, newItem]);
+  };
+
+  const removePythonFile = (id: string) => {
+    if (pythonFiles.length <= 1) {
+      alert('Cần giữ ít nhất 1 file Python!');
+      return;
+    }
+    setPythonFiles(pythonFiles.filter(f => f.id !== id));
+  };
+
+  const updatePythonFile = (id: string, field: keyof RotatingStatusItem, value: any) => {
+    setPythonFiles(pythonFiles.map(f => {
+      if (f.id !== id) return f;
+      const updated = { ...f, [field]: value };
+      if (field === 'details' && value) {
+        const fileName = value.replace('Editing ', '').trim();
+        updated.text = `Đang code ${fileName} ${updated.emojiName || '🐍'}`;
+      }
+      return updated;
+    }));
+  };
+
+  const handleApplyVSCodePython = async () => {
+    setIsSaving(true);
+    try {
+      if (onUpdateDevice) {
+        await onUpdateDevice('desktop');
+      }
+      const syncedFiles = pythonFiles.map(file => ({
+        ...file,
+        largeImage: pythonImage || file.largeImage,
+      }));
+      const intervalSec = Math.max(10, Math.round(pythonIntervalMinutes * 60));
+      await onUpdateRotatingStatus(true, intervalSec, syncedFiles);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi kích hoạt VS Code Python Multi-Status');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleStopVSCodePython = async () => {
+    setIsSaving(true);
+    try {
+      await onUpdateRotatingStatus(false, pythonIntervalMinutes * 60, pythonFiles);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi dừng VS Code Status');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const [status, setStatus] = useState<DiscordStatus>(account.status || 'online');
   const [customText, setCustomText] = useState(account.customStatus?.text || '');
   const [emojiName, setEmojiName] = useState(account.customStatus?.emojiName || '⚡');
@@ -341,134 +496,333 @@ export const StatusController: React.FC<Props> = ({
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 gap-1 overflow-x-auto">
+          <button
+            id="tab-vscode"
+            type="button"
+            onClick={() => setActiveTab('vscode')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === 'vscode'
+                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                : 'text-indigo-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Code2 className="w-3.5 h-3.5 text-amber-300" />
+            <span>💻 VS Code Python (Tự Đổi Status)</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+              MỚI
+            </span>
+          </button>
           <button
             id="tab-static-presence"
             type="button"
             onClick={() => setActiveTab('presence')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer whitespace-nowrap ${
               activeTab === 'presence'
                 ? 'bg-indigo-600 text-white shadow'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Trạng thái cố định
+            🎮 Trạng thái Game & Custom RPC
           </button>
           <button
             id="tab-rotating-presence"
             type="button"
             onClick={() => setActiveTab('rotating')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'rotating'
                 ? 'bg-indigo-600 text-white shadow'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Repeat className="w-3.5 h-3.5" />
-            Đổi Status tự động
+            🔄 Đổi Status Tự Do
           </button>
         </div>
       </div>
 
-      {activeTab === 'presence' ? (
+      {activeTab === 'vscode' ? (
         <div className="space-y-6">
-          {/* BANNER ĐẶC BIỆT: CHỌN BIỂU TƯỢNG THIẾT BỊ DISCORD (DEVICE BADGE) */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-indigo-950/40 border border-emerald-500/40 shadow-xl space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* BANNER THIẾT BỊ: KHÓA MÁY TÍNH (PC DESKTOP) */}
+          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center shrink-0">
+                <Monitor className="w-5 h-5 text-indigo-300" />
+              </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="flex h-2.5 w-2.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  <span className="font-bold text-xs text-white">💻 THIẾT BỊ: MÁY TÍNH (PC DESKTOP)</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    ĐÃ KHÓA CỐ ĐỊNH PC
                   </span>
-                  <label className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
-                    <Smartphone className="w-4 h-4 text-emerald-400" />
-                    Biểu Tượng Thiết Bị Hiển Thị Trên Discord (Device Badge)
-                  </label>
                 </div>
-                <p className="text-xs text-slate-300 mt-1">
-                  Đang chọn: <b className="text-emerald-400 font-semibold">{deviceType === 'mobile' ? '📱 Điện Thoại (Discord Android)' : deviceType === 'ios' ? '🍏 iPhone (Discord iOS)' : deviceType === 'desktop' ? '💻 Máy Tính (PC)' : '🌐 Trình Duyệt Web'}</b>
-                  <span className="text-slate-400 text-[11px] block sm:inline sm:ml-2">
-                    {deviceType === 'mobile' || deviceType === 'ios' ? '• Bạn bè sẽ thấy icon Cái Điện Thoại 📱 cạnh Avatar!' : '• Bạn bè sẽ thấy chấm tròn máy tính thông thường.'}
-                  </span>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Đã gỡ bỏ hoàn toàn icon điện thoại. Tài khoản của bạn sẽ luôn luôn hiển thị biểu tượng Máy Tính (Discord Client Windows).
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleDeviceSelect('desktop')}
+              className="px-3.5 py-1.5 bg-indigo-600/50 hover:bg-indigo-600 border border-indigo-400/40 text-indigo-100 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Đảm bảo PC 100%
+            </button>
+          </div>
+
+          {/* VS CODE PYTHON DYNAMIC MULTI-STATUS CONFIGURATION */}
+          <div className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-5">
+            {/* Header section */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🐍</span>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    Visual Studio Code (Python Multi-Status)
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      Tự Động Đổi File
+                    </span>
+                  </h4>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Tự động luân phiên đổi qua lại giữa các file code (toolchui.py, bot_discord.py,...) sau mỗi vài phút
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handlePureMobileMode}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 shrink-0 cursor-pointer self-start sm:self-auto border border-emerald-400/30"
-              >
-                <Zap className="w-4 h-4 text-amber-300 fill-amber-300 animate-bounce" />
-                ⚡ 1-Click Treo Điện Thoại Tinh Khiết
-              </button>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={handleStopVSCodePython}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
+                >
+                  Dừng tự đổi
+                </button>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={handleApplyVSCodePython}
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {savedSuccess ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-300" />
+                      Đã Kích Hoạt!
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      🚀 Kích Hoạt Ngay
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => handleDeviceSelect('mobile')}
-                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
-                  deviceType === 'mobile'
-                    ? 'bg-emerald-950/80 border-emerald-400 ring-2 ring-emerald-500/40 text-white shadow-lg'
-                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-300">
-                  <Smartphone className="w-4 h-4 text-emerald-400" />
-                  Điện thoại 📱
-                </div>
-                <div className="text-[10px] text-emerald-400 font-medium">Discord Android (Chuẩn)</div>
-              </button>
+            {/* 1. Cấu hình Ảnh Hoạt Động (Python Artwork) */}
+            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-indigo-400" />
+                  Hình Ảnh Hoạt Động (Python Logo Artwork)
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Hiển thị ảnh Python + Huy hiệu VS Code trên Profile Discord
+                </span>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => handleDeviceSelect('ios')}
-                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
-                  deviceType === 'ios'
-                    ? 'bg-emerald-950/80 border-emerald-400 ring-2 ring-emerald-500/40 text-white shadow-lg'
-                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
-                  <Apple className="w-4 h-4 text-slate-300" />
-                  iPhone iOS 🍏
+              <div className="flex items-center gap-3">
+                <img
+                  src={pythonImage}
+                  alt="Python Artwork"
+                  className="w-14 h-14 rounded-xl object-cover border border-indigo-500/40 shadow-md bg-slate-950 shrink-0"
+                  onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                />
+                <div className="flex-1 space-y-1">
+                  <input
+                    type="url"
+                    value={pythonImage}
+                    onChange={(e) => setPythonImage(e.target.value)}
+                    placeholder="https://... link ảnh Python"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    Đã cấu hình sẵn link ảnh Python chuẩn theo yêu cầu của bạn.
+                  </p>
                 </div>
-                <div className="text-[10px] text-slate-400">Discord iOS Badge</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDeviceSelect('desktop')}
-                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
-                  deviceType === 'desktop'
-                    ? 'bg-indigo-950/80 border-indigo-400 ring-2 ring-indigo-500/40 text-white shadow-lg'
-                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
-                  <Monitor className="w-4 h-4 text-slate-300" />
-                  Máy tính PC 💻
-                </div>
-                <div className="text-[10px] text-slate-400">Desktop Client</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDeviceSelect('web')}
-                className={`p-3 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
-                  deviceType === 'web'
-                    ? 'bg-indigo-950/80 border-indigo-400 ring-2 ring-indigo-500/40 text-white shadow-lg'
-                    : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800 text-slate-400'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
-                  <Globe className="w-4 h-4 text-slate-300" />
-                  Trình duyệt 🌐
-                </div>
-                <div className="text-[10px] text-slate-400">Web Chrome</div>
-              </button>
+              </div>
             </div>
+
+            {/* 2. Cấu hình Thời Gian Đổi File (Phút) */}
+            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  Khoảng Thời Gian Đổi Qua Status Khác (Chu Kỳ)
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Đang cài đặt: Đổi file sau mỗi <strong className="text-amber-300">{pythonIntervalMinutes} phút</strong>
+                </span>
+              </div>
+
+              {/* Quick minute chips */}
+              <div className="flex flex-wrap items-center gap-2">
+                {[1, 2, 3, 5, 10, 15].map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setPythonIntervalMinutes(mins)}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                      pythonIntervalMinutes === mins
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-200 ring-1 ring-amber-500/30'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    ⏱️ {mins} phút
+                  </button>
+                ))}
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <span className="text-xs text-slate-400">Tự chỉnh:</span>
+                  <input
+                    type="number"
+                    min={0.5}
+                    max={60}
+                    step={0.5}
+                    value={pythonIntervalMinutes}
+                    onChange={(e) => setPythonIntervalMinutes(Math.max(0.5, Number(e.target.value)))}
+                    className="w-16 px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-amber-300 text-center"
+                  />
+                  <span className="text-xs text-slate-400">phút</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Danh Sách File Python Luân Phiên */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <FileCode className="w-4 h-4 text-indigo-400" />
+                  Danh Sách Các File Python Luân Phiên ({pythonFiles.length} file)
+                </label>
+                <button
+                  type="button"
+                  onClick={addPythonFile}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold transition cursor-pointer px-2.5 py-1 bg-indigo-950/60 hover:bg-indigo-900/60 border border-indigo-800 rounded-lg"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  + Thêm File Python
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {pythonFiles.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="p-3.5 bg-slate-900/90 border border-slate-800/90 hover:border-slate-700 rounded-xl space-y-2.5 transition"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 text-[11px] font-mono flex items-center justify-center shrink-0">
+                          {index + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={item.emojiName || '🐍'}
+                          onChange={(e) => updatePythonFile(item.id, 'emojiName', e.target.value)}
+                          maxLength={4}
+                          className="w-9 px-1 py-1 bg-slate-950 border border-slate-700 rounded-lg text-center text-sm font-mono"
+                          title="Emoji dòng trạng thái"
+                        />
+                        <input
+                          type="text"
+                          value={item.details || ''}
+                          onChange={(e) => updatePythonFile(item.id, 'details', e.target.value)}
+                          placeholder="Editing toolchui.py"
+                          className="px-3 py-1 bg-slate-950 border border-slate-700/80 rounded-lg text-xs font-semibold text-indigo-300 w-44 sm:w-56"
+                          title="Dòng chi tiết (Details) trong Rich Presence"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={item.status}
+                          onChange={(e) => updatePythonFile(item.id, 'status', e.target.value as DiscordStatus)}
+                          className="px-2 py-1 bg-slate-950 border border-slate-700 text-[11px] rounded-lg text-slate-300"
+                        >
+                          <option value="online">Online</option>
+                          <option value="idle">Idle</option>
+                          <option value="dnd">DND</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removePythonFile(item.id)}
+                          title="Xóa file này"
+                          className="p-1 text-slate-500 hover:text-rose-400 transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* State & Custom text inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="text-[10px] text-slate-500 block mb-0.5">Workspace / State (Line number)</label>
+                        <input
+                          type="text"
+                          value={item.state || ''}
+                          onChange={(e) => updatePythonFile(item.id, 'state', e.target.value)}
+                          placeholder="Workspace: Python Tools (Line 142)"
+                          className="w-full px-2.5 py-1 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 text-xs font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 block mb-0.5">Dòng Status hiển thị trên Avatar</label>
+                        <input
+                          type="text"
+                          value={item.text}
+                          onChange={(e) => updatePythonFile(item.id, 'text', e.target.value)}
+                          placeholder="Đang code toolchui.py 🐍"
+                          className="w-full px-2.5 py-1 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'presence' ? (
+        <div className="space-y-6">
+          {/* BANNER THIẾT BỊ: KHÓA MÁY TÍNH (PC DESKTOP) */}
+          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center shrink-0">
+                <Monitor className="w-5 h-5 text-indigo-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs text-white">💻 THIẾT BỊ: MÁY TÍNH (PC DESKTOP)</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    ĐÃ KHÓA CỐ ĐỊNH PC
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Đã gỡ bỏ hoàn toàn icon điện thoại. Tài khoản của bạn luôn hiển thị biểu tượng Máy Tính (PC Client).
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleDeviceSelect('desktop')}
+              className="px-3.5 py-1.5 bg-indigo-600/50 hover:bg-indigo-600 border border-indigo-400/40 text-indigo-100 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Đảm bảo PC 100%
+            </button>
           </div>
 
           {/* Quick Presets */}
@@ -479,13 +833,26 @@ export const StatusController: React.FC<Props> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
               <button
                 type="button"
-                onClick={() => applyPreset('pure_mobile')}
-                className="px-3 py-2 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 hover:border-emerald-400 rounded-xl text-left transition group cursor-pointer"
+                onClick={() => {
+                  setStatus('online');
+                  setCustomText('Đang code toolchui.py 🐍');
+                  setEmojiName('🐍');
+                  setActivityName('Visual Studio Code');
+                  setActivityType(0);
+                  setActivityDetails('Editing toolchui.py');
+                  setActivityState('Workspace: Python Tools (Line 214)');
+                  setApplicationId('383226320970055681');
+                  setLargeImage('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10');
+                  setLargeText('Python 3.12 (Virtual Environment)');
+                  setSmallImage('https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png');
+                  setSmallText('Visual Studio Code');
+                }}
+                className="px-3 py-2 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/40 hover:border-indigo-400 rounded-xl text-left transition group cursor-pointer"
               >
-                <div className="font-bold text-xs text-emerald-300 flex items-center gap-1">
-                  <span>📱 ĐT Tinh Khiết</span>
+                <div className="font-bold text-xs text-indigo-300 flex items-center gap-1">
+                  <span>🐍 toolchui.py</span>
                 </div>
-                <div className="text-[10px] text-emerald-400/80 mt-0.5">Không status / game</div>
+                <div className="text-[10px] text-indigo-400/80 mt-0.5">VS Code Python</div>
               </button>
               <button
                 type="button"

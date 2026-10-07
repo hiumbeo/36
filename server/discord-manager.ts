@@ -494,7 +494,7 @@ export class DiscordManager {
         username: val.user.username,
         discriminator: val.user.discriminator,
         avatar: val.user.avatar,
-        deviceType: accountData.deviceType || 'mobile',
+        deviceType: accountData.deviceType || 'desktop',
         status: accountData.status || 'online',
         customStatus: accountData.customStatus !== undefined 
           ? accountData.customStatus 
@@ -916,7 +916,7 @@ export class DiscordManager {
   }
 
   /**
-   * Configure Rotating Status
+   * Configure Rotating Status (Đổi trạng thái tự động nhiều file VS Code / Activity theo phút hoặc giây)
    */
   public setRotatingStatus(id: string, config: { enabled: boolean; intervalSeconds: number; items: RotatingStatusItem[] }): boolean {
     const client = this.clients.get(id);
@@ -930,22 +930,63 @@ export class DiscordManager {
 
     if (config.enabled && config.items.length > 0) {
       const intervalMs = Math.max(5, config.intervalSeconds) * 1000;
+      
+      const applyItem = (item: RotatingStatusItem) => {
+        client.session.status = item.status || 'online';
+        client.session.customStatus = { 
+          text: item.text,
+          emojiName: item.emojiName || '🐍'
+        };
+
+        const isVSCode = !item.activityName || item.activityName.toLowerCase().includes('visual studio code') || item.activityName.toLowerCase().includes('vs code');
+        const defaultLargeImage = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPmNJMnX4lEb1GZfYgYfVTSpb2i3SMCSsPfqUDiGfd8w&s=10'; // Python Logo artwork
+        const defaultSmallImage = 'https://cdn.discordapp.com/app-assets/383226320970055681/565945869639188500.png'; // VS Code official badge
+
+        client.session.activity = {
+          name: item.activityName || 'Visual Studio Code',
+          type: item.activityType ?? 0,
+          details: item.details || `Editing ${item.text.replace(/[^a-zA-Z0-9._-]/g, '') || 'main.py'}`,
+          state: item.state || 'Workspace: Python Projects (Line 142)',
+          application_id: isVSCode ? '383226320970055681' : undefined,
+          timestamps: {
+            mode: 'now',
+            start: Date.now(),
+          },
+          assets: {
+            large_image: item.largeImage || defaultLargeImage,
+            large_text: item.largeText || 'Python 3.12 (Virtual Environment)',
+            small_image: item.smallImage || (isVSCode ? defaultSmallImage : undefined),
+            small_text: item.smallText || (isVSCode ? 'Visual Studio Code' : undefined),
+          },
+        };
+
+        if (client.ws && client.ws.readyState === WebSocket.OPEN) {
+          this.sendPresencePayload(client);
+        }
+      };
+
+      // Áp dụng ngay lập tức file/status đầu tiên mà không cần đợi hết chu kỳ
+      const currentItem = config.items[client.currentRotationIndex % config.items.length];
+      if (currentItem) {
+        applyItem(currentItem);
+      }
+
       client.rotationInterval = setInterval(() => {
         if (!client.session.isConnected || !client.ws || client.ws.readyState !== WebSocket.OPEN) return;
         
         client.currentRotationIndex = (client.currentRotationIndex + 1) % config.items.length;
         const item = config.items[client.currentRotationIndex];
         if (item) {
-          client.session.status = item.status;
-          client.session.customStatus = { text: item.text };
-          client.session.activity = {
-            name: item.activityName || item.text,
-            type: item.activityType,
-          };
-          this.sendPresencePayload(client);
+          applyItem(item);
+          const intervalMins = Math.round((config.intervalSeconds / 60) * 10) / 10;
+          const intervalLabel = config.intervalSeconds >= 60 ? `${intervalMins} phút` : `${config.intervalSeconds} giây`;
+          this.addLog('info', `[VS Code Python] Tự động đổi sang file: "${item.details || item.text}" (Chu kỳ: ${intervalLabel}/lần)`, id);
         }
       }, intervalMs);
-      this.addLog('info', `Đã kích hoạt đổi trạng thái tự động mỗi ${config.intervalSeconds}s (${config.items.length} trạng thái).`, id);
+
+      const intervalMins = Math.round((config.intervalSeconds / 60) * 10) / 10;
+      const intervalLabel = config.intervalSeconds >= 60 ? `${intervalMins} phút` : `${config.intervalSeconds} giây`;
+      this.addLog('success', `Đã kích hoạt đổi trạng thái VS Code Python tự động mỗi ${intervalLabel} (${config.items.length} file).`, id);
     } else {
       this.addLog('info', `Đã tắt đổi trạng thái tự động.`, id);
     }
@@ -1972,7 +2013,7 @@ export class DiscordManager {
   private sendIdentify(client: ActiveClient) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) return;
     const id = client.session.id;
-    const deviceType = client.session.deviceType || 'mobile';
+    const deviceType = client.session.deviceType || 'desktop';
 
     const deviceLabels: Record<DeviceType, string> = {
       mobile: '📱 Điện thoại (Discord Android)',
