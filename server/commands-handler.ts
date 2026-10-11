@@ -243,8 +243,8 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
     case 'roblox':
     case 'rbx': {
       const experience = argsString.trim();
-      const robloxLargeImg = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/roblox.png';
-      const robloxSmallImg = 'https://cdn.iconscout.com/icon/free/png-256/free-roblox-logo-icon-download-in-svg-png-gif-file-formats--technology-social-media-company-brand-vol-6-pack-logos-icons-3030206.png';
+      const robloxLargeImg = 'https://logos-world.net/wp-content/uploads/2021/04/Roblox-Logo.png';
+      const robloxSmallImg = 'https://cdn-icons-png.flaticon.com/512/5968/5968672.png';
 
       // Đảm bảo thiết bị là PC Desktop (không hiện icon điện thoại)
       manager.updateDeviceType(client.session.id, 'desktop');

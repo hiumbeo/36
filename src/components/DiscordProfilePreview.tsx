@@ -93,7 +93,7 @@ export const DiscordProfilePreview: React.FC<Props> = ({
             start: Date.now(),
           },
           assets: {
-            large_image: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/roblox.png',
+            large_image: 'https://images.rbxcdn.com/7936a282f1b409748ec0970af641474d',
             large_text: 'Roblox',
             small_image: 'https://cdn.iconscout.com/icon/free/png-256/free-roblox-logo-icon-download-in-svg-png-gif-file-formats--technology-social-media-company-brand-vol-6-pack-logos-icons-3030206.png',
             small_text: 'Verified Game',
