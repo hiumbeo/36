@@ -240,20 +240,38 @@ export async function handleExtensiveCommand(ctx: CommandContext): Promise<boole
       return true;
     }
 
-    case 'roblox': {
-      const game = argsString || 'Blox Fruits (Sea 3)';
+    case 'roblox':
+    case 'rbx': {
+      const experience = argsString.trim();
+      const robloxLargeImg = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/roblox.png';
+      const robloxSmallImg = 'https://cdn.iconscout.com/icon/free/png-256/free-roblox-logo-icon-download-in-svg-png-gif-file-formats--technology-social-media-company-brand-vol-6-pack-logos-icons-3030206.png';
+
+      // Đảm bảo thiết bị là PC Desktop (không hiện icon điện thoại)
+      manager.updateDeviceType(client.session.id, 'desktop');
+
       manager.updatePresence(client.session.id, 'online', {
         name: 'Roblox',
         type: 0,
-        details: `Playing ${game}`,
-        state: 'In Server (AFK Farming)',
-        application_id: '440594246830587904',
-        assets: {
-          large_image: 'https://images.rbxcdn.com/f9c8bbd02d334dd163c461159828453d.jpg',
-          large_text: 'Roblox Blox Fruits',
+        details: experience ? `Playing ${experience}` : 'Playing Roblox',
+        state: 'In Game',
+        application_id: '439223656200273920',
+        timestamps: {
+          mode: 'now',
+          start: Date.now(),
         },
-      }, { text: 'Roblox Grinding 🧱', emojiName: '🧱' });
-      await sendOrEdit(msg.channel_id, msg.id, `🧱 Đã chuyển sang chơi **Roblox** (Có hình ảnh Rich Presence): \`${game}\``);
+        assets: {
+          large_image: robloxLargeImg,
+          large_text: 'Roblox',
+          small_image: robloxSmallImg,
+          small_text: 'Verified Game',
+        },
+      }, { text: experience ? `Playing ${experience} 🎮` : 'Đang chơi Roblox 🎮', emojiName: '🎮' });
+
+      await sendOrEdit(
+        msg.channel_id,
+        msg.id,
+        `🎮 Đã chuyển sang chơi **Roblox** (Chuẩn Official RPC đàng hoàng): *${experience ? `Playing ${experience}` : 'Playing Roblox'}*`
+      );
       return true;
     }
 

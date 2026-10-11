@@ -51,11 +51,11 @@ export const getCommandsList = (p: string): SelfbotCommandInfo[] => [
   },
   {
     name: 'roblox',
-    syntax: `${p}roblox [game]`,
-    desc: 'Chơi Roblox Blox Fruits AFK Sea 3.',
+    syntax: `${p}roblox [trò_chơi]`,
+    desc: 'Chơi Roblox chính thức (Official Roblox Rich Presence kèm ảnh logo Roblox đàng hoàng).',
     category: 'games',
     categoryLabel: '🎮 Gaming & Trạng Thái',
-    example: `${p}roblox Blox Fruits`,
+    example: `${p}roblox`,
   },
   {
     name: 'genshin',

@@ -181,7 +181,7 @@ export class DiscordManager {
         discriminator: '1337',
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&h=128&fit=crop&crop=face',
         status: 'online',
-        deviceType: 'mobile',
+        deviceType: 'desktop',
         customStatus: { text: 'Treo 24/7 trên Render.com 🚀', emojiName: '💻' },
         activity: {
           name: 'Twitch',

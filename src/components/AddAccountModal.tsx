@@ -15,8 +15,8 @@ interface Props {
 
 export const AddAccountModal: React.FC<Props> = ({ isOpen, onClose, onAccountAdded }) => {
   const [token, setToken] = useState('');
-  const [deviceType, setDeviceType] = useState<DeviceType>('mobile');
-  const [pureOnline, setPureOnline] = useState(true);
+  const [deviceType, setDeviceType] = useState<DeviceType>('desktop');
+  const [pureOnline, setPureOnline] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
@@ -265,6 +265,22 @@ export const AddAccountModal: React.FC<Props> = ({ isOpen, onClose, onAccountAdd
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
+                onClick={() => setDeviceType('desktop')}
+                className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
+                  deviceType === 'desktop'
+                    ? 'bg-indigo-950/60 border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg'
+                    : 'bg-slate-950/50 hover:bg-slate-800/80 border-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs text-indigo-300">
+                  <Monitor className="w-4 h-4 text-indigo-400" />
+                  Máy tính PC 💻
+                </div>
+                <div className="text-[10px] text-indigo-300/80 font-medium">Khuyên dùng (Chuẩn PC)</div>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setDeviceType('mobile')}
                 className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
                   deviceType === 'mobile'
@@ -272,11 +288,11 @@ export const AddAccountModal: React.FC<Props> = ({ isOpen, onClose, onAccountAdd
                     : 'bg-slate-950/50 hover:bg-slate-800/80 border-slate-800 text-slate-400'
                 }`}
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-300">
-                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                  <Smartphone className="w-4 h-4 text-slate-300" />
                   Điện thoại 📱
                 </div>
-                <div className="text-[10px] text-emerald-400/80 font-medium">Khuyên dùng (Đúng brief)</div>
+                <div className="text-[10px] text-slate-500">Android icon</div>
               </button>
 
               <button
@@ -292,23 +308,7 @@ export const AddAccountModal: React.FC<Props> = ({ isOpen, onClose, onAccountAdd
                   <Apple className="w-4 h-4 text-slate-300" />
                   iPhone iOS 🍏
                 </div>
-                <div className="text-[10px] text-slate-500">Icon điện thoại</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDeviceType('desktop')}
-                className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
-                  deviceType === 'desktop'
-                    ? 'bg-indigo-950/60 border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg'
-                    : 'bg-slate-950/50 hover:bg-slate-800/80 border-slate-800 text-slate-400'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
-                  <Monitor className="w-4 h-4 text-slate-300" />
-                  Máy tính PC 💻
-                </div>
-                <div className="text-[10px] text-slate-500">Chấm tròn xanh</div>
+                <div className="text-[10px] text-slate-500">Icon iPhone</div>
               </button>
 
               <button

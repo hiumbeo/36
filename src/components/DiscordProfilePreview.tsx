@@ -77,6 +77,38 @@ export const DiscordProfilePreview: React.FC<Props> = ({
     }
   };
 
+  const handleQuickRoblox = async () => {
+    if (!account || !onUpdatePresence) return;
+    try {
+      await onUpdatePresence(
+        'online',
+        {
+          name: 'Roblox',
+          type: 0,
+          details: 'Playing Roblox',
+          state: 'In Game',
+          application_id: '439223656200273920',
+          timestamps: {
+            mode: 'now',
+            start: Date.now(),
+          },
+          assets: {
+            large_image: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/roblox.png',
+            large_text: 'Roblox',
+            small_image: 'https://cdn.iconscout.com/icon/free/png-256/free-roblox-logo-icon-download-in-svg-png-gif-file-formats--technology-social-media-company-brand-vol-6-pack-logos-icons-3030206.png',
+            small_text: 'Verified Game',
+          },
+        },
+        { text: 'Đang chơi Roblox 🎮', emojiName: '🎮' }
+      );
+      if (onUpdateDevice) {
+        await onUpdateDevice('desktop');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleQuickValorant = async () => {
     if (!account || !onUpdatePresence) return;
     try {
@@ -208,6 +240,15 @@ export const DiscordProfilePreview: React.FC<Props> = ({
             className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 transition flex items-center gap-1 cursor-pointer shadow-sm"
           >
             <span>🐍 VS Code Python</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleQuickRoblox}
+            title="Kích hoạt trạng thái đang chơi Roblox chuẩn Official RPC"
+            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 transition flex items-center gap-1 cursor-pointer shadow-sm"
+          >
+            <span>🎮 Chơi Roblox</span>
           </button>
 
           <button

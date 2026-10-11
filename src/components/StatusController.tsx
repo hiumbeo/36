@@ -264,7 +264,7 @@ export const StatusController: React.FC<Props> = ({
 
   // Sync state when selected account changes
   useEffect(() => {
-    setDeviceType(account.deviceType || 'mobile');
+    setDeviceType(account.deviceType || 'desktop');
     setStatus(account.status || 'online');
     setCustomText(account.customStatus?.text || '');
     setEmojiName(account.customStatus?.emojiName || '⚡');
@@ -427,12 +427,27 @@ export const StatusController: React.FC<Props> = ({
   };
 
   // Quick Preset Handlers
-  const applyPreset = (preset: 'pure_mobile' | 'vscode' | 'streaming' | 'spotify' | 'soundcloud' | 'gaming') => {
+  const applyPreset = (preset: 'pure_mobile' | 'vscode' | 'streaming' | 'spotify' | 'soundcloud' | 'gaming' | 'roblox') => {
     if (preset === 'pure_mobile') {
       handlePureMobileMode();
       return;
     }
-    if (preset === 'vscode') {
+    if (preset === 'roblox') {
+      setStatus('online');
+      setDeviceType('desktop');
+      setCustomText('Đang chơi Roblox 🎮');
+      setEmojiName('🎮');
+      setActivityName('Roblox');
+      setActivityType(0);
+      setActivityDetails('Playing Roblox');
+      setActivityState('In Game');
+      setApplicationId('439223656200273920');
+      setLargeImage('https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/roblox.png');
+      setLargeText('Roblox');
+      setSmallImage('https://cdn.iconscout.com/icon/free/png-256/free-roblox-logo-icon-download-in-svg-png-gif-file-formats--technology-social-media-company-brand-vol-6-pack-logos-icons-3030206.png');
+      setSmallText('Verified Game');
+      setTimeMode('now');
+    } else if (preset === 'vscode') {
       setStatus('online');
       setCustomText('Coding mode on 💻');
       setEmojiName('💻');
@@ -830,7 +845,7 @@ export const StatusController: React.FC<Props> = ({
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
               Mẫu cấu hình nhanh (1-Click Presets)
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
               <button
                 type="button"
                 onClick={() => {
@@ -853,6 +868,16 @@ export const StatusController: React.FC<Props> = ({
                   <span>🐍 toolchui.py</span>
                 </div>
                 <div className="text-[10px] text-indigo-400/80 mt-0.5">VS Code Python</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('roblox')}
+                className="px-3 py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 hover:border-red-400 rounded-xl text-left transition group cursor-pointer"
+              >
+                <div className="font-bold text-xs text-red-300 flex items-center gap-1">
+                  <span>🎮 Roblox</span>
+                </div>
+                <div className="text-[10px] text-red-400/80 mt-0.5">Official RPC Logo</div>
               </button>
               <button
                 type="button"

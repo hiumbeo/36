@@ -179,8 +179,8 @@ export default function App() {
   const handleAddAccount = async (
     token: string, 
     autoConnect: boolean, 
-    deviceType: 'mobile' | 'ios' | 'desktop' | 'web' = 'mobile',
-    pureOnline: boolean = true
+    deviceType: 'mobile' | 'ios' | 'desktop' | 'web' = 'desktop',
+    pureOnline: boolean = false
   ) => {
     const payload: any = {
       token: token.trim(),
